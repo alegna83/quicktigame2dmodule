@@ -1,3 +1,54 @@
+This is a Box2D port with additionals.
+
+1. Find body in world by coordinates using standard Box2d query 
+var body = world.findBody({posX:e.x,posY:e.y}); 
+
+2. MouseJoint added
+
+    var dragged = false;
+    var mouseJoint = null;
+    
+    game.addEventListener("touchstart", function(e){
+        if (dragged) return;
+
+        var body = game.world.findBody({posX:e.x, posY:e.y});
+        if (!body) return;
+        
+        var sprite = body.view;
+        
+        if ( sprite.draggable && sprite.contains(e.x, e.y) ) {
+            dragged = true;
+            body.setAwake(false);
+            mouseJoint = game.world.createJoint(game.world.groundBody, body, {
+                type: 5, //mouse
+                targetX: e.x,
+                targetY: e.y,
+                collideConnected : true
+            });
+            body.setAwake(true);
+            
+        }
+                
+    });
+
+    game.addEventListener("touchmove",  function(e){
+        if (!dragged) return;
+        mouseJoint.SetTarget({posX:e.x, posY:e.y});
+    });
+    
+    game.addEventListener("touchend", function(e){
+        if (dragged) {
+            Ti.API.info('DROP');
+            game.world.destroyJoint(mouseJoint);
+            mouseJoint= null;
+        }
+        dragged = false;
+    });
+
+
+
+
+
 QuickTiGame2d: 2D Game Engine Module for Titanium Mobile
 ===========================================
 

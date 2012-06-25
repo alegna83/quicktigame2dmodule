@@ -1,3 +1,15 @@
+//
+// Using Box2d Physics (iOS only)
+// 
+// Note: Use QuickTiGame2d module with Box2D support.
+//      (Use com.googlecode.quicktigame2d-iphone-box2d-x.x.zip instead of com.googlecode.quicktigame2d-iphone-x.x.zip)
+// 
+// This is QuickTiGame2d port of Appcelerator's Ti.Box2d module.
+//
+// For more information about Ti.Box2d, see official documentation below.
+// https://github.com/appcelerator/titanium_modules/blob/master/box2d/mobile/ios/README.md
+// 
+
 var window = Ti.UI.createWindow({backgroundColor:'black'});
 
 // Obtain game module
@@ -6,6 +18,10 @@ var quicktigame2d = require('com.googlecode.quicktigame2d');
 // Create view for your game.
 // Note that game.screen.width and height are not yet set until the game is loaded
 var game = quicktigame2d.createGameView();
+
+// The physics world surface accepts GameView instance.
+var world = quicktigame2d.createBox2dWorld({surface:game});
+world.setGravity(0.0, -9.81);
 
 // Frame rate can be changed (fps can not be changed after the game is loaded)
 game.fps = 30;
@@ -18,108 +34,121 @@ game.debug = true;
 // Create game scene
 var scene = quicktigame2d.createScene();
 
-// create new 64x64 shape
-var shape = quicktigame2d.createSprite({width:64, height:64});
+// create new shape
+var boxShape  = quicktigame2d.createSprite({width:64, height:64});
+var ballShape = quicktigame2d.createSprite({image:'graphics/A.png'});
+
+// create floor and walls 
+var floor     = quicktigame2d.createSprite();
+var leftWall   = quicktigame2d.createSprite();
+var rightWall  = quicktigame2d.createSprite();
 
 // color(red, green, blue) takes values from 0 to 1
-shape.color(1, 0, 0);
+boxShape.color(1, 0, 0);
+ballShape.color(0, 0, 1);
 
 // add your shape to the scene
-scene.add(shape);
+scene.add(boxShape);
+scene.add(ballShape);
+scene.add(floor);
+scene.add(leftWall);
+scene.add(rightWall);
 
 // add your scene to game view
 game.pushScene(scene);
 
+// body.setAngle accepts radians value so we need this function
+function degreeToRadians(x) {
+    return (Math.PI * x / 180.0);
+}
+
+// bodyrefs are reference of physical bodies
+var redBodyRef, blueBodyRef, floorRef, leftWallRef;
+
 // Onload event is called when the game is loaded.
 // The game.screen.width and game.screen.height are not yet set until this onload event.
 game.addEventListener('onload', function(e) {
-    // Your game screen size is set here if you did not specifiy game width and height using screen property.
-    // Note that Ti.UI.View returns non-retina values (320x480) as view size,
-    // on the other hand the game screen property returns retina values (based on 640x960) on retina devices.
-    Ti.API.info("view size: " + game.size.width + "x" + game.size.height);
-    Ti.API.info("game screen size: " + game.screen.width + "x" + game.screen.height);
-    
-    // Move your shape to center of the screen
-    shape.x = (game.screen.width  * 0.5) - (shape.width  * 0.5);
-    shape.y = (game.screen.height * 0.25) - (shape.height * 0.5);
-    
-    // Start the game
-    game.start();
-});
+                      // Your game screen size is set here if you did not specifiy game width and height using screen property.
+                      // Note: game.size.width and height may be changed due to the parent layout so check them here.
+                      Ti.API.info("view size: " + game.size.width + "x" + game.size.height);
+                      Ti.API.info("game screen size: " + game.screen.width + "x" + game.screen.height);
+                      
+                      floor.width     = game.screen.width;
+                      leftWall.width  = 10;
+                      rightWall.width = 10;
+                      
+                      floor.height     = 10;
+                      leftWall.height  = game.screen.height;
+                      rightWall.height = game.screen.height;
+                      
+                      boxShape.move(game.screen.width  * 0.5 - boxShape.width  * 0.5, 0);
+                      ballShape.move(game.screen.width * 0.5 - ballShape.width * 0.5, -32);
+                      
+                      floor.move(0, game.screen.height * 0.75);
+                      
+                      leftWall.move(0, 0);
+                      rightWall.move(game.screen.width - rightWall.width, 0);
+                      
+                      // add bodies to the world
+                      // Note: this should be done AFTER game.screen has been set and all sprites has been initialized
+                      // otherwise physics world and its bodies can not determine their size.
+                      redBodyRef = world.addBody(boxShape, {
+                                                 density: 12.0,
+                                                 friction: 0.3,
+                                                 restitution: 0.4,
+                                                 type: "dynamic"
+                                                 });
+                      
+                      blueBodyRef = world.addBody(ballShape, {
+                                                  radius: 16,
+                                                  density: 12.0,
+                                                  friction: 0.3,
+                                                  restitution: 0.4,
+                                                  type: "dynamic"
+                                                  });
+                      
+                      floorRef = world.addBody(floor, {
+                                               density:12.0,
+                                               friction:0.3,
+                                               restitution:0.4,
+                                               type:"static"
+                                               });
+                      
+                      leftWallRef = world.addBody(leftWall, {
+                                                  density:12.0,
+                                                  friction:0.3,
+                                                  restitution:0.4,
+                                                  type:"static"
+                                                  });
+                      
+                      rightWallRef = world.addBody(rightWall, {
+                                                   density:12.0,
+                                                   friction:0.3,
+                                                   restitution:0.4,
+                                                   type:"static"
+                                                   });
+                      
+                      redBodyRef.setAngle(degreeToRadians(45));
+                      floorRef.setAngle(degreeToRadians(15));
+                      
+                      // Start the game
+                      game.start();
+                      
+                      // Start the physics world
+                      world.start();
+                      });
 
-game.addEventListener('enterframe', function(e) {
-	
-    // Move your shape
-    shape.x = shape.x + 2;
-    
-    // Rotate your shape
-    shape.rotate(shape.angle + 6);
-    
-    // If the shape moves outside of the screen,
-    // then the shape appears from the other side of the screen
-    if (shape.x + shape.width > game.screen.width) {
-        shape.x = -shape.width;
-    }
-});
+world.addEventListener("collision", function(e) {
+                       if ((e.a == redBodyRef || e.b == redBodyRef) && e.phase == "begin") {
+                       Ti.API.info("the red block collided with something");
+                       Ti.API.info(JSON.stringify(e));
+                       }
+                       });
 
 game.addEventListener('touchstart', function(e) {
-    var f = game.toImage();
-    Titanium.Media.saveToPhotoGallery(f, {
-		success: function(e) {
-			Titanium.UI.createAlertDialog({
-				title:'Photo Gallery',
-				message:'Saved'
-			}).show();		
-		},
-		error: function(e) {
-			Titanium.UI.createAlertDialog({
-				title:'Error saving',
-				message:e.error
-			}).show();
-		}    	
-    });
-
-    /**
-    // We should calculate the view scale because Ti.UI.View returns non-retina values.
-    // This scale should be 2 on retina devices.
-    var scale = game.screen.width  / game.width;
-    
-    // Move your shape to center of the event position
-    shape.x = (e.x * scale) - (shape.width * 0.5);
-    shape.y = (e.y * scale) - (shape.width * 0.5);
-     **/
-});
+                      
+                      });
 
 // Add your game view
 window.add(game);
-
-var centerLabel = Titanium.UI.createLabel({
-    color:'black',
-    backgroundColor:'white',
-    text:'touch screen to move rectangle',
-    font:{fontSize:20,fontFamily:'Helvetica Neue'},
-    textAlign:'center',
-    width:'auto',
-    height:'auto'
-});
-
-game.debug = true;
-
-game.enableOnFpsEvent = true; // onfps event is disabled by default so enable this
-game.onFpsInterval    = 5000; // set onfps interval msec (default value equals 5,000 msec)
-
-game.addEventListener('onfps', function(e) {
-    Ti.API.info(e.fps.toFixed(2) + " fps");
-});
-
-Ti.API.info("Label: " + centerLabel.width + "x" + centerLabel.height);
-
-quicktigame2d.addEventListener('onlowmemory', function(e) {
-    Ti.API.warn("Low Memory");
-});
-
-// add label to the window
-window.add(centerLabel);
-
 window.open({fullscreen:true, navBarHidden:true});
-

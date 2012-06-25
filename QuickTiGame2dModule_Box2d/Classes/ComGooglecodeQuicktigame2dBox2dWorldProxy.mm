@@ -16,7 +16,9 @@
 
 #import "ComGooglecodeQuicktigame2dBox2dWorldProxy.hh"
 #import "ComGooglecodeQuicktigame2dBox2dRevJointProxy.hh"
+#import "ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh"
 #import "ComGooglecodeQuicktigame2dGameView.h"
+#import "ComGooglecodeQuicktigame2dWorldQueryCallback.h"
 
 @implementation ComGooglecodeQuicktigame2dBox2dWorldProxy
 
@@ -95,7 +97,7 @@
 	gravity.Set(0.0f, -9.81f); 
 	
 	// Construct a world object, which will hold and simulate the rigid bodies.
-	world = new b2World(gravity, false); //TODO: make configurable sleep
+	world = new b2World(gravity); //TODO: make configurable sleep
 	world->SetContinuousPhysics(true);
 	
 	if (contactListener)
@@ -333,65 +335,104 @@
     
     // Need to add other joint types...
     int jointType = [TiUtils intValue:@"type" properties:props def: 1];
-    
+    /*
+     e_unknownJoint, = 0
+     e_revoluteJoint, = 1
+     e_prismaticJoint, = 2
+     e_distanceJoint, = 3
+     e_pulleyJoint, = 4
+     e_mouseJoint, = 5
+     e_gearJoint,
+     e_wheelJoint,
+     e_weldJoint,
+     e_frictionJoint,
+     e_ropeJoint
+
+     */
     //by default
-    b2RevoluteJointDef jointDef;
-    ComGooglecodeQuicktigame2dBox2dRevJointProxy *jp;
-    switch (jointType) {
-        case 1:
+    //b2JointDef jointDef;
+    //ComGooglecodeQuicktigame2dBox2dRevJointProxy *jp;
+    if (jointType == 1) {
             b2RevoluteJointDef jointDef;
-            
             ComGooglecodeQuicktigame2dBox2dRevJointProxy *jp = nil;
-            break;
+            
+            b2Vec2 p1([TiUtils floatValue:@"jointPoint" properties:props def:0.0f], 0.0f),p2([TiUtils floatValue:@"basePoint" properties:props def:0.0f], 0.0f);
+            
+            jointDef.localAnchorB.SetZero();
+            jointDef.localAnchorA = p1;
+            jointDef.bodyA = body1;
+            
+            jointDef.localAnchorB = p2;
+            jointDef.bodyB = body2;
+            
+            
+            if([TiUtils boolValue:@"enableLimit" properties:props def:false]) {
+                jointDef.enableLimit = true;
+                
+                jointDef.upperAngle = [TiUtils floatValue:@"upperAngle" properties:props def:10.0f] * b2_pi;
+                
+                jointDef.lowerAngle = [TiUtils floatValue:@"lowerAngle" properties:props def:10.0f] * b2_pi;
+                
+            }
+            
+            if([TiUtils boolValue:@"enableMotor" properties:props def:false]) {
+                jointDef.enableMotor = true;
+                
+                jointDef.maxMotorTorque = [TiUtils floatValue:@"maxMotorTorque" properties:props def:10.0f];
+                
+                jointDef.motorSpeed = [TiUtils floatValue:@"motorSpeed" properties:props def:10.0f];
+                
+            }
+            
+            jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:true];
+            
+                b2RevoluteJoint *joint;
+                joint = (b2RevoluteJoint*)world->CreateJoint(&jointDef);
+                
+                jp = [[ComGooglecodeQuicktigame2dBox2dRevJointProxy alloc] initWithJoint:joint];
+        [lock unlock];
+        return jp;
+            
+    } else if (jointType == 5) {
+        b2MouseJointDef jointDef;
+        ComGooglecodeQuicktigame2dBox2dMouseJointProxy *jp = nil;
+        jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:true];
+        jointDef.bodyA = body1;
+        jointDef.bodyB = body2;
+        jointDef.maxForce = 16000.0f;
+        CGFloat height = [(ComGooglecodeQuicktigame2dGameView*)[surface view] gamebounds].size.height;
+        
+        b2Vec2 targetPos([TiUtils floatValue:@"targetX" properties:props def:0.0f]/PTM_RATIO,(height - [TiUtils floatValue:@"targetY" properties:props def:0.0f])/PTM_RATIO);
+        
+        jointDef.target = targetPos;
+        
+        b2MouseJoint *joint;
+        joint = (b2MouseJoint*)world->CreateJoint(&jointDef);
+        
+        jp = [[ComGooglecodeQuicktigame2dBox2dMouseJointProxy alloc] initWithJointAndHeight:joint,height];
+        
+ 
+        [lock unlock];
+        return jp;
     }    
     
-    b2Vec2 p1([TiUtils floatValue:@"jointPoint" properties:props def:0.0f], 0.0f),p2([TiUtils floatValue:@"basePoint" properties:props def:0.0f], 0.0f);
-    
-    jointDef.localAnchorB.SetZero();
-    jointDef.localAnchorA = p1;
-    jointDef.bodyA = body1;
-    
-    jointDef.localAnchorB = p2;
-    jointDef.bodyB = body2;
     
     
-    if([TiUtils boolValue:@"enableLimit" properties:props def:false]) {
-        jointDef.enableLimit = true;
-        
-        jointDef.upperAngle = [TiUtils floatValue:@"upperAngle" properties:props def:10.0f] * b2_pi;
-        
-        jointDef.lowerAngle = [TiUtils floatValue:@"lowerAngle" properties:props def:10.0f] * b2_pi;
-        
-    }
     
-    if([TiUtils boolValue:@"enableMotor" properties:props def:false]) {
-        jointDef.enableMotor = true;
-        
-        jointDef.maxMotorTorque = [TiUtils floatValue:@"maxMotorTorque" properties:props def:10.0f];
-        
-        jointDef.motorSpeed = [TiUtils floatValue:@"motorSpeed" properties:props def:10.0f];
-        
-    }
     
-    jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:true];
-    
-    // Need to add other joint types...
-    switch (jointType) {
-        case 1:
-        default:
-            b2RevoluteJoint *joint;
-            joint = (b2RevoluteJoint*)world->CreateJoint(&jointDef);
-            
-            jp = [[ComGooglecodeQuicktigame2dBox2dRevJointProxy alloc] initWithJoint:joint];
-            break;
-    }
-    
-    [lock unlock];
-    
-    return jp;
     
 }
 
+-(void)destroyJoint:(id)joint
+{
+    ENSURE_SINGLE_ARG(joint, ComGooglecodeQuicktigame2dBox2dMouseJointProxy);
+    [lock lock];
+    if (world)
+    {
+        world->DestroyJoint([joint joint]);
+    }
+    [lock unlock];
+}
 
 -(void)tick:(NSTimer *)timer
 {
@@ -433,6 +474,43 @@
 	}
 	
 	[lock unlock];
+}
+
+-(id)findBody:(id)args
+{
+    NSDictionary *props = [args count] > 0 ? [args objectAtIndex:0] : nil;
+    CGFloat height = [(ComGooglecodeQuicktigame2dGameView*)[surface view] gamebounds].size.height;
+    
+    float posX = [TiUtils floatValue:@"posX" properties:props def:1.0f] / PTM_RATIO;
+    float posY = (height - [TiUtils floatValue:@"posY" properties:props def:1.0f]) / PTM_RATIO;
+    
+    b2Vec2 position = b2Vec2(posX, posY);
+
+    
+    b2AABB aabb;
+    b2Vec2 d;
+    d.Set(0.001f, 0.001f);
+    aabb.lowerBound = position - d;
+    aabb.upperBound = position + d;
+    
+    // Query the world for overlapping shapes.
+    ComGooglecodeQuicktigame2dWorldQueryCallback callback(position);
+    world->QueryAABB(&callback, aabb);
+    
+    b2Body* nbody = NULL;
+    
+    if (callback.m_fixture)
+    {
+        nbody = callback.m_fixture->GetBody();        
+    }
+    
+    if (nbody)
+    {
+        id bp = (id)nbody->GetUserData();
+        return bp;
+    }
+    return NULL;
+
 }
 
 @end

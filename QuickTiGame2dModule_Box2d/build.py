@@ -159,8 +159,8 @@ def glob_libfiles():
 	return files
 
 def build_module(manifest,config):
-	from tools import ensure_dev_path
-	ensure_dev_path()
+	#from tools import ensure_dev_path
+	#ensure_dev_path()
 	
 	rc = os.system("xcodebuild -sdk iphoneos -configuration Release")
 	if rc != 0:
