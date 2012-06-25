@@ -45,6 +45,9 @@ var body = world.findBody({posX:e.x,posY:e.y});
         dragged = false;
     });
 
+TODO:
+
+- refactor createJoint to one method per joint: createRevoltJoint, createMouseJoint, createRopeJoint, etc.
 
 
 
