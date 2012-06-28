@@ -90,4 +90,48 @@
     [(QuickTiGame2dTextSprite*)sprite reload];
 }
 
+-(id)defaultWidth {
+        UIFont* font = [UIFont systemFontOfSize:[UIFont systemFontSize]];
+        
+        if ([((QuickTiGame2dTextSprite*)sprite).fontFamily length] > 0) {
+            NSInteger size = ((QuickTiGame2dTextSprite*)sprite).fontSize > 0 ? ((QuickTiGame2dTextSprite*)sprite).fontSize : [UIFont systemFontSize];
+            font = [UIFont fontWithName:((QuickTiGame2dTextSprite*)sprite).fontFamily size:size];
+        } else if (((QuickTiGame2dTextSprite*)sprite).fontSize > 0) {
+            font = [UIFont systemFontOfSize:((QuickTiGame2dTextSprite*)sprite).fontSize];
+        }
+        
+        CGSize textSize = CGSizeMake(1, 1);
+        
+            if ([((QuickTiGame2dTextSprite*)sprite).text length] == 0) {
+                textSize = [@" " sizeWithFont:font]; 
+            } else {
+                textSize = [((QuickTiGame2dTextSprite*)sprite).text sizeWithFont:font]; 
+            }
+        
+        int textWidth  = textSize.width;
+        return NUMINT(textWidth);
+}
+
+-(id)defaultHeight {
+    UIFont* font = [UIFont systemFontOfSize:[UIFont systemFontSize]];
+    
+    if ([((QuickTiGame2dTextSprite*)sprite).fontFamily length] > 0) {
+        NSInteger size = ((QuickTiGame2dTextSprite*)sprite).fontSize > 0 ? ((QuickTiGame2dTextSprite*)sprite).fontSize : [UIFont systemFontSize];
+        font = [UIFont fontWithName:((QuickTiGame2dTextSprite*)sprite).fontFamily size:size];
+    } else if (((QuickTiGame2dTextSprite*)sprite).fontSize > 0) {
+        font = [UIFont systemFontOfSize:((QuickTiGame2dTextSprite*)sprite).fontSize];
+    }
+    
+    CGSize textSize = CGSizeMake(1, 1);
+    
+    if ([((QuickTiGame2dTextSprite*)sprite).text length] == 0) {
+        textSize = [@" " sizeWithFont:font]; 
+    } else {
+        textSize = [((QuickTiGame2dTextSprite*)sprite).text sizeWithFont:font]; 
+    }
+    
+    int textHeight  = textSize.height;
+    return NUMINT(textHeight);
+}
+
 @end
