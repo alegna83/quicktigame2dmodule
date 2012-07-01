@@ -27,6 +27,7 @@
 // 
 #import "ComGooglecodeQuicktigame2dSceneProxy.h"
 #import "ComGooglecodeQuicktigame2dSpriteProxy.h"
+#import "QuickTiGame2dSprite.h"
 #import "ComGooglecodeQuicktigame2dTransformProxy.h"
 #import "TiUtils.h"
 
@@ -133,5 +134,30 @@
     ENSURE_SINGLE_ARG(args, ComGooglecodeQuicktigame2dTransformProxy);
     [scene transform:[args transformer]];
 }
+
+-(void)fireSpriteEventAt:(id)args {
+    ENSURE_SINGLE_ARG(args, NSDictionary);
+    
+    NSString *eventName = [TiUtils stringValue:@"type" properties:args def:@""];
+    NSInteger x = [TiUtils intValue:@"x" properties:args def:0];
+    NSInteger y = [TiUtils intValue:@"y" properties:args def:0];
+    
+    NSArray * sprites = [scene spritesAt:x y:y];
+    
+    for (int i=0; i<[sprites count]; i++) {
+        QuickTiGame2dSprite * sprite = [sprites objectAtIndex:i];
+        for (int j=0; j<[spriteStack count]; j++) {
+            ComGooglecodeQuicktigame2dSpriteProxy * spriteProxy = [spriteStack objectAtIndex:j];
+            if ([spriteProxy sprite] == sprite) {
+                //NSLog(eventName);
+                [spriteProxy fireEvent:eventName withObject:args withSource:spriteProxy];
+                break;
+            }
+        }
+        //[sprite fireEvent:eventName];
+    }
+    [sprites release];
+}
+
 
 @end

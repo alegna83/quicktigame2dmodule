@@ -36,7 +36,11 @@ var scene = quicktigame2d.createScene();
 
 // create new shape
 var boxShape  = quicktigame2d.createSprite({width:64, height:64});
-var ballShape = quicktigame2d.createSprite({image:'graphics/A.png'});
+boxShape.addEventListener('touchstart', function(e) {
+                          alert(e);
+                          });
+
+var ballShape = quicktigame2d.createSprite({image:'graphics/A.png', width:32, height:32});
 
 // create floor and walls 
 var floor     = quicktigame2d.createSprite();
@@ -73,7 +77,7 @@ game.addEventListener('onload', function(e) {
                       Ti.API.info("view size: " + game.size.width + "x" + game.size.height);
                       Ti.API.info("game screen size: " + game.screen.width + "x" + game.screen.height);
                       
-                      floor.width     = game.screen.width;
+                      floor.width     = game.screen.width/2-10;
                       leftWall.width  = 10;
                       rightWall.width = 10;
                       
@@ -81,10 +85,10 @@ game.addEventListener('onload', function(e) {
                       leftWall.height  = game.screen.height;
                       rightWall.height = game.screen.height;
                       
-                      boxShape.move(game.screen.width  * 0.5 - boxShape.width  * 0.5, 0);
-                      ballShape.move(game.screen.width * 0.5 - ballShape.width * 0.5, -32);
+                      boxShape.move(game.screen.width  * 0.75 - boxShape.width  * 0.5, 0);
+                      ballShape.move(game.screen.width * 0.75 - ballShape.width * 0.5, -32);
                       
-                      floor.move(0, game.screen.height * 0.75);
+                      floor.move(game.screen.width * 0.5, game.screen.height * 0.75);
                       
                       leftWall.move(0, 0);
                       rightWall.move(game.screen.width - rightWall.width, 0);
@@ -109,9 +113,9 @@ game.addEventListener('onload', function(e) {
                       
                       floorRef = world.addBody(floor, {
                                                density:12.0,
-                                               friction:0.3,
+                                               friction:1.3,
                                                restitution:0.4,
-                                               type:"static"
+                                               type:"dynamic"
                                                });
                       
                       leftWallRef = world.addBody(leftWall, {
@@ -128,14 +132,31 @@ game.addEventListener('onload', function(e) {
                                                    type:"static"
                                                    });
                       
-                      redBodyRef.setAngle(degreeToRadians(45));
-                      floorRef.setAngle(degreeToRadians(15));
+                      //redBodyRef.setAngle(degreeToRadians(45));
+//                      floorRef.setAngle(degreeToRadians(0));
+                      
+                      
+                      
+                      var joint = world.createRevoluteJoint(leftWallRef, floorRef, {
+                                                         enableLimit : true,
+                                                         lowerAngle : -80,
+                                                         upperAngle : 15,
+                                                         enableMotor : true,
+                                                         maxMotorTorque : 10,
+                                                         
+                                                         motorSpeed : 0,
+                                                         anchorX: game.screen.width * 0.5,
+                                                         anchorY: game.screen.height * 0.75,
+                                                         collideConnected : false
+                                  });
                       
                       // Start the game
                       game.start();
                       
                       // Start the physics world
                       world.start();
+
+                      
                       });
 
 world.addEventListener("collision", function(e) {
@@ -146,7 +167,7 @@ world.addEventListener("collision", function(e) {
                        });
 
 game.addEventListener('touchstart', function(e) {
-                      
+                      scene.fireSpriteEventAt(e);                      
                       });
 
 // Add your game view

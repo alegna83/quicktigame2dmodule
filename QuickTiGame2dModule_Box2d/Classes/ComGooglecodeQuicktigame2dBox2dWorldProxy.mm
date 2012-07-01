@@ -319,6 +319,53 @@
 #define B2VEC2_ARRAY(v) [NSArray arrayWithObjects:NUMDOUBLE(v.x), NUMDOUBLE(v.y),nil];
 #define ARRAY_B2VEC2(a,b) b2Vec2 b([TiUtils doubleValue:[a objectAtIndex:0]], [TiUtils doubleValue:[a objectAtIndex:1]]);
 
+-(id) createRevoluteJoint: (id) args {
+    NSDictionary *props = [args count] > 2 ? [args objectAtIndex:2] : nil;
+    
+    [lock lock];
+    
+    ComGooglecodeQuicktigame2dBox2dBodyProxy *TiBody1 = [args objectAtIndex:0];
+    
+    b2Body *body1 = TiBody1.body;
+    
+    ComGooglecodeQuicktigame2dBox2dBodyProxy *TiBody2 = [args objectAtIndex:1];
+    
+    b2Body *body2 = TiBody2.body;
+    
+    b2RevoluteJointDef jointDef;
+    ComGooglecodeQuicktigame2dBox2dRevJointProxy *jp = nil;
+    CGFloat height = [(ComGooglecodeQuicktigame2dGameView*)[surface view] gamebounds].size.height;
+
+    
+    //anchorXY is global world point on initialization
+    b2Vec2 anchor([TiUtils floatValue:@"anchorX" properties:props def:0.0f]/PTM_RATIO, (height - [TiUtils floatValue:@"anchorY" properties:props def:0.0f])/PTM_RATIO);
+    jointDef.Initialize(body1, body2, anchor);
+    
+    
+    jointDef.enableLimit = [TiUtils boolValue:@"enableLimit" properties:props def:false];
+    
+    jointDef.upperAngle = degreesToRadians([TiUtils floatValue:@"upperAngle" properties:props def:0.0f]);
+    
+    jointDef.lowerAngle = degreesToRadians([TiUtils floatValue:@"lowerAngle" properties:props def:0.0f]);
+    
+
+    jointDef.enableMotor = [TiUtils boolValue:@"enableMotor" properties:props def:false];
+    
+    jointDef.maxMotorTorque = [TiUtils floatValue:@"maxMotorTorque" properties:props def:0.0f];
+    
+    jointDef.motorSpeed = [TiUtils floatValue:@"motorSpeed" properties:props def:0.0f];
+        
+    
+    jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:true];
+    
+    b2RevoluteJoint *joint;
+    joint = (b2RevoluteJoint*)world->CreateJoint(&jointDef);
+    
+    jp = [[ComGooglecodeQuicktigame2dBox2dRevJointProxy alloc] initWithJoint:joint];
+    [lock unlock];
+    return jp;
+    
+}
 -(id)createJoint:(id)args
 {
     NSDictionary *props = [args count] > 2 ? [args objectAtIndex:2] : nil;
@@ -347,52 +394,52 @@
      e_weldJoint,
      e_frictionJoint,
      e_ropeJoint
-
+     
      */
     //by default
     //b2JointDef jointDef;
     //ComGooglecodeQuicktigame2dBox2dRevJointProxy *jp;
     if (jointType == 1) {
-            b2RevoluteJointDef jointDef;
-            ComGooglecodeQuicktigame2dBox2dRevJointProxy *jp = nil;
+        b2RevoluteJointDef jointDef;
+        ComGooglecodeQuicktigame2dBox2dRevJointProxy *jp = nil;
+        
+        b2Vec2 p1([TiUtils floatValue:@"jointPoint" properties:props def:0.0f], 0.0f),p2([TiUtils floatValue:@"basePoint" properties:props def:0.0f], 0.0f);
+        
+        jointDef.localAnchorB.SetZero();
+        jointDef.localAnchorA = p1;
+        jointDef.bodyA = body1;
+        
+        jointDef.localAnchorB = p2;
+        jointDef.bodyB = body2;
+        
+        
+        if([TiUtils boolValue:@"enableLimit" properties:props def:false]) {
+            jointDef.enableLimit = true;
             
-            b2Vec2 p1([TiUtils floatValue:@"jointPoint" properties:props def:0.0f], 0.0f),p2([TiUtils floatValue:@"basePoint" properties:props def:0.0f], 0.0f);
+            jointDef.upperAngle = [TiUtils floatValue:@"upperAngle" properties:props def:10.0f] * b2_pi;
             
-            jointDef.localAnchorB.SetZero();
-            jointDef.localAnchorA = p1;
-            jointDef.bodyA = body1;
+            jointDef.lowerAngle = [TiUtils floatValue:@"lowerAngle" properties:props def:10.0f] * b2_pi;
             
-            jointDef.localAnchorB = p2;
-            jointDef.bodyB = body2;
+        }
+        
+        if([TiUtils boolValue:@"enableMotor" properties:props def:false]) {
+            jointDef.enableMotor = true;
             
+            jointDef.maxMotorTorque = [TiUtils floatValue:@"maxMotorTorque" properties:props def:10.0f];
             
-            if([TiUtils boolValue:@"enableLimit" properties:props def:false]) {
-                jointDef.enableLimit = true;
-                
-                jointDef.upperAngle = [TiUtils floatValue:@"upperAngle" properties:props def:10.0f] * b2_pi;
-                
-                jointDef.lowerAngle = [TiUtils floatValue:@"lowerAngle" properties:props def:10.0f] * b2_pi;
-                
-            }
+            jointDef.motorSpeed = [TiUtils floatValue:@"motorSpeed" properties:props def:10.0f];
             
-            if([TiUtils boolValue:@"enableMotor" properties:props def:false]) {
-                jointDef.enableMotor = true;
-                
-                jointDef.maxMotorTorque = [TiUtils floatValue:@"maxMotorTorque" properties:props def:10.0f];
-                
-                jointDef.motorSpeed = [TiUtils floatValue:@"motorSpeed" properties:props def:10.0f];
-                
-            }
-            
-            jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:true];
-            
-                b2RevoluteJoint *joint;
-                joint = (b2RevoluteJoint*)world->CreateJoint(&jointDef);
-                
-                jp = [[ComGooglecodeQuicktigame2dBox2dRevJointProxy alloc] initWithJoint:joint];
+        }
+        
+        jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:true];
+        
+        b2RevoluteJoint *joint;
+        joint = (b2RevoluteJoint*)world->CreateJoint(&jointDef);
+        
+        jp = [[ComGooglecodeQuicktigame2dBox2dRevJointProxy alloc] initWithJoint:joint];
         [lock unlock];
         return jp;
-            
+        
     } else if (jointType == 5) {
         b2MouseJointDef jointDef;
         ComGooglecodeQuicktigame2dBox2dMouseJointProxy *jp = nil;
@@ -411,17 +458,50 @@
         
         jp = [[ComGooglecodeQuicktigame2dBox2dMouseJointProxy alloc] initWithJointAndHeight:joint,height];
         
- 
+        
         [lock unlock];
         return jp;
     }    
-    
-    
-    
-    
-    
-    
 }
+
+
+-(id)createMouseJoint:(id)args
+{
+    NSDictionary *props = [args count] > 2 ? [args objectAtIndex:2] : nil;
+    
+    [lock lock];
+    
+    ComGooglecodeQuicktigame2dBox2dBodyProxy *TiBody1 = [args objectAtIndex:0];
+    
+    b2Body *body1 = TiBody1.body;
+    
+    ComGooglecodeQuicktigame2dBox2dBodyProxy *TiBody2 = [args objectAtIndex:1];
+    
+    b2Body *body2 = TiBody2.body;
+    
+    b2MouseJointDef jointDef;
+    ComGooglecodeQuicktigame2dBox2dMouseJointProxy *jp = nil;
+    jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:true];
+    jointDef.bodyA = body1;
+    jointDef.bodyB = body2;
+    jointDef.maxForce = 16000.0f;
+    CGFloat height = [(ComGooglecodeQuicktigame2dGameView*)[surface view] gamebounds].size.height;
+    
+    b2Vec2 targetPos([TiUtils floatValue:@"targetX" properties:props def:0.0f]/PTM_RATIO,(height - [TiUtils floatValue:@"targetY" properties:props def:0.0f])/PTM_RATIO);
+    
+    jointDef.target = targetPos;
+    
+    b2MouseJoint *joint;
+    joint = (b2MouseJoint*)world->CreateJoint(&jointDef);
+    
+    jp = [[ComGooglecodeQuicktigame2dBox2dMouseJointProxy alloc] initWithJointAndHeight:joint,height];
+    
+
+    [lock unlock];
+    return jp;
+}
+
+
 
 -(void)destroyJoint:(id)joint
 {

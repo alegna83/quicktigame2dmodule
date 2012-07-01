@@ -50,9 +50,6 @@
     [super dealloc];
 }
 
-- (QuickTiGame2dSprite*)sprite {
-    return sprite;
-}
 
 /*
  * notification event that is issued by game engine
@@ -71,6 +68,9 @@
 }
 
 #pragma Public APIs
+- (QuickTiGame2dSprite*)sprite {
+    return sprite;
+}
 
 -(void)dispose:(id)args {
     RELEASE_TO_NIL(sprite)

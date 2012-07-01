@@ -269,4 +269,24 @@
     
 }
 
+-(NSArray*)spritesAt:(int)x y:(int)y {
+    NSArray * spritesToEnum;
+    spritesToEnum = [[NSArray alloc] init];
+    spritesToEnum = [[sprites sortedArrayUsingSelector:@selector(compareZ:)] retain];
+
+    NSMutableArray* spritesAtXY;
+    spritesAtXY = [[NSMutableArray alloc] init];
+    for (int i = [spritesToEnum count]-1; i >=0 ; i--) {
+        QuickTiGame2dSprite* sprite = [spritesToEnum objectAtIndex:i];
+        if (x >= sprite.x && x <= sprite.x + sprite.width &&
+            y >= sprite.y && y <= sprite.y + sprite.height) {
+            
+            [spritesAtXY addObject:sprite];
+        }
+    }
+    [spritesToEnum release];
+    
+    return spritesAtXY;
+}
+
 @end

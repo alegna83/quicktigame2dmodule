@@ -48,4 +48,7 @@
 - (void)remove:(id)args;
 
 - (void)transform:(id)args;
+
+-(void)fireSpriteEventAt:(id)args;
+
 @end

@@ -73,4 +73,6 @@
 -(BOOL)hasSprite;
 
 -(void)transform:(QuickTiGame2dTransform*) _transform;
+
+-(NSArray*)spritesAt:(int)x y:(int)y;
 @end
