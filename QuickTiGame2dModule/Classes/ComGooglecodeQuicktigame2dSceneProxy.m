@@ -148,7 +148,7 @@
         QuickTiGame2dSprite * sprite = [sprites objectAtIndex:i];
         for (int j=0; j<[spriteStack count]; j++) {
             ComGooglecodeQuicktigame2dSpriteProxy * spriteProxy = [spriteStack objectAtIndex:j];
-            if ([spriteProxy sprite] == sprite) {
+            if ([spriteProxy sprite] == sprite && sprite.alpha > 0) {
                 //NSLog(eventName);
                 [spriteProxy fireEvent:eventName withObject:args withSource:spriteProxy];
                 break;
