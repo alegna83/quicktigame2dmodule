@@ -207,7 +207,7 @@
     body->ApplyAngularImpulse(i);
 }
 
--(void)SetTransform:(id)args
+-(void)SetTransformWait:(id)args
 {    
     [lock lock];
     
@@ -226,6 +226,11 @@
     body->SetTransform(moveToPosition, angle);
     
     [lock unlock];
+}
+
+-(void)SetTransform:(id)args
+{    
+    [self performSelectorOnMainThread:@selector(SetTransformWait:) withObject:args waitUntilDone:YES];
 }
 
 -(void)setAngle:(id)args
