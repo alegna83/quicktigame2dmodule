@@ -16,6 +16,7 @@
 
 #import "ComGooglecodeQuicktigame2dBox2dWorldProxy.hh"
 #import "ComGooglecodeQuicktigame2dBox2dRevJointProxy.hh"
+#import "ComGooglecodeQuicktigame2dBox2dRopeJointProxy.hh"
 #import "ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh"
 #import "ComGooglecodeQuicktigame2dGameView.h"
 #import "ComGooglecodeQuicktigame2dWorldQueryCallback.h"
@@ -271,7 +272,15 @@
 		fixtureDef.density =  [TiUtils floatValue:@"density" properties:props def:3.0f];
 		fixtureDef.friction = [TiUtils floatValue:@"friction" properties:props def:0.3f];
 		fixtureDef.restitution = [TiUtils floatValue:@"restitution" properties:props def:0.5f]; // 0 is a lead ball, 1 is a super bouncy ball
-        
+
+        if ([TiUtils boolValue:@"filter" properties:props def:false]) {
+            b2Filter filter;
+            filter.groupIndex = [TiUtils intValue:@"groupIndex" properties:props def:0];
+            filter.maskBits = [TiUtils intValue:@"maskBits" properties:props def:0xFFFF];
+            filter.categoryBits = [TiUtils intValue:@"categoryBits" properties:props def:0x0001];
+            fixtureDef.filter = filter;
+        }
+
 		body->CreateFixture(&fixtureDef);
 		
 		NSString *bodyType = [TiUtils stringValue:@"type" properties:props def:@"dynamic"];
@@ -501,6 +510,44 @@
     return jp;
 }
 
+-(id)createRopeJoint:(id)args
+{
+    NSDictionary *props = [args count] > 2 ? [args objectAtIndex:2] : nil;
+    
+    [lock lock];
+    
+    ComGooglecodeQuicktigame2dBox2dBodyProxy *TiBody1 = [args objectAtIndex:0];
+    
+    b2Body *body1 = TiBody1.body;
+    
+    ComGooglecodeQuicktigame2dBox2dBodyProxy *TiBody2 = [args objectAtIndex:1];
+    
+    b2Body *body2 = TiBody2.body;
+    
+    b2RopeJointDef jointDef;
+    ComGooglecodeQuicktigame2dBox2dRopeJointProxy *jp = nil;
+    jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:true];
+    jointDef.bodyA = body1;
+    jointDef.bodyB = body2;
+    jointDef.maxLength = [TiUtils floatValue:@"maxLength"properties:props def:0.0f]/PTM_RATIO;
+    CGFloat height = [(ComGooglecodeQuicktigame2dGameView*)[surface view] gamebounds].size.height;
+    
+    b2Vec2 anchorA([TiUtils floatValue:@"anchorA_x" properties:props def:0.0f]/PTM_RATIO,(height - [TiUtils floatValue:@"anchorA_y"properties:props def:0.0f])/PTM_RATIO);
+    
+    b2Vec2 anchorB([TiUtils floatValue:@"anchorB_x" properties:props def:0.0f]/PTM_RATIO,(height - [TiUtils floatValue:@"anchorB_y"properties:props def:0.0f])/PTM_RATIO);
+    
+    jointDef.localAnchorA = body1->GetLocalPoint(anchorA);
+    jointDef.localAnchorB = body2->GetLocalPoint(anchorB);
+    
+    b2RopeJoint *joint;
+    joint = (b2RopeJoint*)world->CreateJoint(&jointDef);
+    
+    jp = [[ComGooglecodeQuicktigame2dBox2dRopeJointProxy alloc] initWithJointAndHeight:joint,height];
+    
+    
+    [lock unlock];
+    return jp;
+}
 
 
 -(void)destroyJoint:(id)joint
@@ -527,12 +574,12 @@
 	{
 		
 		int32 velocityIterations = 8;
-		int32 positionIterations = 1;
+		int32 positionIterations = 8;
 		
 		// Instruct the world to perform a single step of simulation. It is
 		// generally best to keep the time step and iterations fixed.
-		world->Step(1.0f/60.0f, velocityIterations, positionIterations);
-        
+		world->Step(1.0f/30.0f, velocityIterations, positionIterations);
+        world->ClearForces();
 		CGSize size = [(ComGooglecodeQuicktigame2dGameView*)[surface view] gamebounds].size;
 		
 		//Iterate over the bodies in the physics world
