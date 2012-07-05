@@ -149,6 +149,13 @@ game.addEventListener('onload', function(e) {
                                                          anchorY: game.screen.height * 0.75,
                                                          collideConnected : false
                                   });
+                      var joint2 = world.createRopeJoint(rightWallRef, floorRef, {
+                                                         maxLength: 50,
+                                                         anchorA_x: game.screen.width * 0.75,
+                                                         anchorA_y: game.screen.height * 0.75,
+                                                         anchorB_x: game.screen.width * 0.75,
+                                                         anchorB_y: game.screen.height * 0.75,
+                                  });
                       
                       // Start the game
                       game.start();
