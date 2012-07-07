@@ -118,7 +118,7 @@
 		[timer invalidate];
 		timer = nil;
 	}
-	timer = [NSTimer scheduledTimerWithTimeInterval:1.0/60.0f target:self selector:@selector(tick:) userInfo:nil repeats:YES];
+	timer = [NSTimer scheduledTimerWithTimeInterval:1.0/30.0f target:self selector:@selector(tick:) userInfo:nil repeats:YES];
 	[lock unlock];
 }
 
