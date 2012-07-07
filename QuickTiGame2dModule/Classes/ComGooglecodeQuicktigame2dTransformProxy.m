@@ -408,4 +408,47 @@
     transform.z = value;
 }
 
+
+- (id)bc1x {
+    return transform.bc1x;
+}
+
+- (void)setBc1x:(id)value {
+    ENSURE_SINGLE_ARG(value, NSNumber);
+    transform.bc1x = value;
+}
+- (id)bc1y {
+    return transform.bc1y;
+}
+
+- (void)setBc1y:(id)value {
+    ENSURE_SINGLE_ARG(value, NSNumber);
+    transform.bc1y = value;
+}
+- (id)bc2x {
+    return transform.bc2x;
+}
+
+- (void)setBc2x:(id)value {
+    ENSURE_SINGLE_ARG(value, NSNumber);
+    transform.bc2x = value;
+}
+- (id)bc2y {
+    return transform.bc2y;
+}
+
+- (void)setBc2y:(id)value {
+    ENSURE_SINGLE_ARG(value, NSNumber);
+    transform.bc2y = value;
+}
+
+- (id)bezier {
+    return NUMBOOL(transform.bezier);
+}
+
+- (void)setBezier:(id)value {
+    ENSURE_SINGLE_ARG(value, NSNumber);
+    transform.bezier = [value boolValue];
+}
+
 @end

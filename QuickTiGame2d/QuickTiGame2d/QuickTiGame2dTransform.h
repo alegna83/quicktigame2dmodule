@@ -103,6 +103,15 @@
     BOOL reversing;
     
     BOOL completed;
+    
+    //besier
+    BOOL bezier;
+    NSNumber* bc1x;
+    NSNumber* bc1y;
+    
+    NSNumber* bc2x;
+    NSNumber* bc2y;
+    
 }
 @property (readwrite, retain) NSNumber* x;
 @property (readwrite, retain) NSNumber* y;
@@ -167,6 +176,13 @@
 @property (readwrite) BOOL autoreverse;
 @property (readwrite) BOOL reversing;
 @property (readwrite) BOOL completed;
+@property (readwrite) BOOL bezier;
+
+@property (readwrite, retain) NSNumber* bc1x;
+@property (readwrite, retain) NSNumber* bc1y;
+@property (readwrite, retain) NSNumber* bc2x;
+@property (readwrite, retain) NSNumber* bc2y;
+
 
 -(void)start;
 -(void)restart;
@@ -182,6 +198,8 @@
 -(void)scale:(float)scale;
 -(void)scale:(float)_scaleX scaleY:(float)_scaleY;
 -(void)move:(float)_x y:(float)_y;
+-(void)addBc1:(float)_x y:(float)_y;
+-(void)addBc2:(float)_x y:(float)_y;
 
 -(BOOL)hasStarted;
 -(BOOL)hasExpired;
@@ -222,5 +240,8 @@
 -(float)easingQuartIn:(float)_elapsed duration:(float)_duration;
 -(float)easingQuartOut:(float)_elapsed duration:(float)_duration;
 -(float)easingQuartInOut:(float)_elapsed duration:(float)_duration;
+
+-(float)current_bezier_x:(float)_from to:(float)_to;
+-(float)current_bezier_y:(float)_from to:(float)_to;
 
 @end
