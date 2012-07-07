@@ -142,6 +142,10 @@
     }
 }
 
+-(void)onDeactivate {
+    [self removeWaitingSprites];
+}
+
 -(void)onDispose {
     if (!loaded) return;
 

@@ -36,6 +36,7 @@ import org.appcelerator.titanium.TiC;
 import org.appcelerator.titanium.util.TiUrl;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 
@@ -77,7 +78,24 @@ public class QuickTiGame2dUtil {
 	public static Context getContext() {
 		return TiApplication.getAppRootOrCurrentActivity();		
 	}
-
+	
+	public static boolean isAsset(String url) {
+		return url.startsWith(SCHEME_ASSET);
+	}
+	
+	public static AssetFileDescriptor getAssetFileDescriptor(String url) throws IOException {
+		return getContext().getAssets().openFd(url.substring(SCHEME_ASSET.length()));
+	}
+	
+	public static String getFilePath(String url) {
+		if (url.startsWith(SCHEME_ASSET)) {
+			return url.substring(SCHEME_ASSET.length());
+		} else {
+			return url.substring(SCHEME_FILE.length());
+		}
+		
+	}
+	
 	public static String resolveUrl(String name) {
 		if (name.startsWith(SCHEME_FILE)) return name;
 		if (name.startsWith(SCHEME_APP))  {

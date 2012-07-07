@@ -142,7 +142,7 @@ public class QuickTiGame2dParticles extends QuickTiGame2dSprite {
 	    createTextureBuffer(gl);
 	    createQuadBuffer(gl);
 	    
-	    if (hasTexture && !aTexture.isSnapshot()) view.onLoadSprite(image);
+	    if (hasTexture && !aTexture.isSnapshot()) view.onLoadSprite(this);
 	    if (debug) GLHelper.checkError(gl);
 	    
 		loaded = true;

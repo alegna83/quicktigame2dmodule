@@ -49,6 +49,7 @@
 @implementation QuickTiGame2dEngine
 @synthesize enableOnDrawFrameEvent, enableOnFpsEvent;
 @synthesize onFpsInterval;
+@synthesize usePerspective;
 
 static NSMutableDictionary* textureCache;
 static NSMutableArray* waitingForLoadTextures;
@@ -68,6 +69,7 @@ static GLint  textureFilter  = GL_NEAREST;
         waitingForUnloadTextures = [[NSMutableArray alloc] init];
         notificationEventCache = [[NSMutableDictionary alloc] init];
         fpsNotificationEventCache = [[NSMutableDictionary alloc] init];
+        sceneNotificationEventCache = [[NSMutableDictionary alloc] init];
         
         dirty  = TRUE;
         loaded = FALSE;
@@ -107,6 +109,9 @@ static GLint  textureFilter  = GL_NEAREST;
         onFpsInterval    = DEFAULT_ONFPS_INTERVAL;
         lastOnFpsTime    = 0;
         fpsFrameCount    = 0;
+        
+        resetPreviousScene = FALSE;
+        previousScene = nil;
     }
     return self;
 }
@@ -124,6 +129,7 @@ static GLint  textureFilter  = GL_NEAREST;
     [sceneStack release];
     [notificationEventCache release];
     [fpsNotificationEventCache release];
+    [sceneNotificationEventCache release];
     [snapshotTexture release];
     [snapshotSprite release];
     [snapshotQueue release];
@@ -258,6 +264,14 @@ static GLint  textureFilter  = GL_NEAREST;
     
     QuickTiGame2dScene* scene = [self topScene];
     
+    if (previousScene != nil) {
+        if (previousScene != scene) {
+            [previousScene onDeactivate];
+        } else {
+            previousScene = nil;
+        }
+    }
+    
     if (scene != nil && status != GAME_STOPPED) {
 
         @synchronized (snapshotQueue) {
@@ -372,17 +386,40 @@ static GLint  textureFilter  = GL_NEAREST;
         [snapshotSprite drawFrame];
     }
 
+    @synchronized(textureCache) {
+        if ([waitingForLoadTextures count] > 0) {
+            for (NSString* name in waitingForLoadTextures) {
+                [QuickTiGame2dEngine loadTexture:name];
+            }
+            [waitingForLoadTextures removeAllObjects];
+        }
+        
+        if ([waitingForUnloadTextures count] > 0) {
+            for (NSString* name in waitingForUnloadTextures) {
+                [QuickTiGame2dEngine unloadTexture:name];
+            }
+            [waitingForUnloadTextures removeAllObjects];
+        }
+    }
+    
     if ([snapshotQueue count] == 0 && sceneEventType != SCENE_EVENT_UNKNOWN) {
         if (sceneEventType == SCENE_EVENT_POP) {
             if (debug) NSLog(@"[DEBUG] QuickTiGame2dEngine:popScene");
-            [sceneStack pop];
+            previousScene = [sceneStack pop];
+            [self onDeactivateScene:previousScene];
+            [self onActivateScene:[sceneStack top]];
         } else if (sceneEventType == SCENE_EVENT_PUSH) {
             if (debug) NSLog(@"[DEBUG] QuickTiGame2dEngine:pushScene");
+            previousScene = [sceneStack top];
+            [self onDeactivateScene:previousScene];
             [sceneStack push:sceneEventArg];
+            [self onActivateScene:[sceneStack top]];
         } else if (sceneEventType == SCENE_EVENT_REPLACE) {
             if (debug) NSLog(@"[DEBUG] QuickTiGame2dEngine:replaceScene");
-            [sceneStack pop];
+            previousScene = [sceneStack pop];
+            [self onDeactivateScene:previousScene];
             [sceneStack push:sceneEventArg];
+            [self onActivateScene:[sceneStack top]];
         }
     
         sceneEventType = SCENE_EVENT_UNKNOWN;
@@ -390,20 +427,9 @@ static GLint  textureFilter  = GL_NEAREST;
         sceneEventArg  = nil;
     }
     
-    @synchronized(textureCache) {
-    if ([waitingForLoadTextures count] > 0) {
-        for (NSString* name in waitingForLoadTextures) {
-            [QuickTiGame2dEngine loadTexture:name];
-        }
-        [waitingForLoadTextures removeAllObjects];
-    }
-    
-    if ([waitingForUnloadTextures count] > 0) {
-        for (NSString* name in waitingForUnloadTextures) {
-            [QuickTiGame2dEngine unloadTexture:name];
-        }
-        [waitingForUnloadTextures removeAllObjects];
-    }
+    if (resetPreviousScene) {
+        previousScene = nil;
+        resetPreviousScene = FALSE;
     }
     
     [QuickTiGame2dEngine restoreGLState:FALSE];
@@ -427,6 +453,22 @@ static GLint  textureFilter  = GL_NEAREST;
     [self fireOnLoadEvent];
     
     [QuickTiGame2dEngine restoreGLState:FALSE];
+}
+
+- (void)onActivateScene:(QuickTiGame2dScene*)scene {
+    if (scene == nil) return;
+    
+    [sceneNotificationEventCache setObject:[NSNumber numberWithDouble:[QuickTiGame2dEngine uptime]] forKey:@"uptime"];
+    [sceneNotificationEventCache setObject:scene forKey:@"source"];
+    [[QuickTiGame2dEngine sharedNotificationCenter] postNotificationName:@"onActivateScene" object:self userInfo:sceneNotificationEventCache];
+}
+
+- (void)onDeactivateScene:(QuickTiGame2dScene*)scene {
+    if (scene == nil) return;
+    
+    [sceneNotificationEventCache setObject:[NSNumber numberWithDouble:[QuickTiGame2dEngine uptime]] forKey:@"uptime"];
+    [sceneNotificationEventCache setObject:scene forKey:@"source"];
+    [[QuickTiGame2dEngine sharedNotificationCenter] postNotificationName:@"onDeactivateScene" object:self userInfo:sceneNotificationEventCache];
 }
 
 - (void)onGainedFocus {
@@ -692,6 +734,11 @@ static GLint  textureFilter  = GL_NEAREST;
             [snapshotQueue push:[NSNumber numberWithInt:SNAPSHOT_RELEASE]];
         }
     }
+}
+
+
+-(void)startCurrentScene {
+    resetPreviousScene = TRUE;
 }
 
 - (GLint)viewportWidth {

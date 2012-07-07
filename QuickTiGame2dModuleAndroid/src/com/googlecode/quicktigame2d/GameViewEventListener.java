@@ -31,6 +31,8 @@ public interface GameViewEventListener extends SpriteEventListener {
 	void onLoad();
 	void onGainedFocus();
 	void onLostFocus();
+	void onActivateScene(QuickTiGame2dScene scene);
+	void onDeactivateScene(QuickTiGame2dScene scene);
 	void onSurfaceChanged(int width, int height);
 	void onDrawFrame(int delta);
 	void onFps(int delta, float fps);

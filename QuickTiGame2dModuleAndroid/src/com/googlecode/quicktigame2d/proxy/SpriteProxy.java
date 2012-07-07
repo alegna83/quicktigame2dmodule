@@ -58,6 +58,9 @@ public class SpriteProxy extends KrollProxy {
     	if (options.containsKey("image")) {
     		setImage(options.getString("image"));
     	}
+    	if (options.containsKey("tag")) {
+    		setTag(options.getString("tag"));
+    	}
     	if (options.containsKey("x")) {
     		setX(options.getDouble("x").floatValue());
     	}
@@ -282,6 +285,16 @@ public class SpriteProxy extends KrollProxy {
 	@Kroll.setProperty @Kroll.method
 	public void setImage(String image) {
 		sprite.setImage(image);
+	}
+	
+	@Kroll.getProperty @Kroll.method
+	public String getTag() {
+		return sprite.getTag();
+	}
+	
+	@Kroll.setProperty @Kroll.method
+	public void setTag(String tag) {
+		sprite.setTag(tag);
 	}
 	
 	@Kroll.getProperty @Kroll.method

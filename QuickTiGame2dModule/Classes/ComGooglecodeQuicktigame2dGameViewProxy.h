@@ -34,6 +34,7 @@
     NSMutableDictionary* screenInfoCache;
     NSMutableDictionary* cameraInfoCache;
     NSInteger orientation;
+    ComGooglecodeQuicktigame2dSceneProxy* previousScene;
 }
 @property (nonatomic, readwrite, assign) id debug;
 @property (nonatomic, readwrite, assign) id screen;
@@ -48,6 +49,7 @@
 @property (nonatomic, readwrite, assign) id useFastTimer;
 @property (nonatomic, readwrite, assign) id timerType;
 @property (nonatomic, readwrite, assign) id opaque;
+@property (nonatomic, readwrite, assign) id usePerspective;
 
 - (void)onNotification:(NSNotification*)notification;
 
@@ -77,4 +79,6 @@
 
 - (TiBlob*)toImage:(id)args;
 - (void)addImageToBlob:(NSArray*)args;
+
+- (void)registerForMultiTouch:(id)args;
 @end

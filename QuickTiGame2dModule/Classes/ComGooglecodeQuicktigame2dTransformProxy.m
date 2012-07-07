@@ -65,10 +65,10 @@
     
     if ([notification.name isEqualToString:@"onStartTransform"]) {
         [notificationEventCache setObject:@"start" forKey:@"type"];
-        [self fireEvent:@"start" withObject:notificationEventCache];
+        [self fireEvent:@"start" withObject:notificationEventCache propagate:NO];
     } else if ([notification.name isEqualToString:@"onCompleteTransform"]) {
         [notificationEventCache setObject:@"complete" forKey:@"type"];
-        [self fireEvent:@"complete" withObject:notificationEventCache];
+        [self fireEvent:@"complete" withObject:notificationEventCache propagate:NO];
     }
 }
 

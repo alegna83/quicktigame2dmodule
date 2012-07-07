@@ -77,6 +77,7 @@ public class QuickTiGame2dSprite {
 	protected QuickTiGame2dGameView view;
 
 	protected String image;
+	protected String tag = "";
 	
 	protected float x = 0;
 	protected float y = 0;
@@ -188,7 +189,7 @@ public class QuickTiGame2dSprite {
 	    }
 	    
 	    if (debug && hasTexture && !aTexture.isSnapshot()) Log.d(Quicktigame2dModule.LOG_TAG, String.format("load Sprite: %s", image));
-	    if (hasTexture && !aTexture.isSnapshot()) view.onLoadSprite(image);
+	    if (hasTexture && !aTexture.isSnapshot()) view.onLoadSprite(this);
 		
 	    if (debug) GLHelper.checkError(gl);
 	    
@@ -290,7 +291,7 @@ public class QuickTiGame2dSprite {
 	public void onDispose() {
 		if (!loaded) return;
 	    if (debug && hasTexture && !getTexture().isSnapshot()) Log.d(Quicktigame2dModule.LOG_TAG, String.format("unload Sprite: %s", image));
-	    if (hasTexture && !getTexture().isSnapshot()) view.onUnloadSprite(image);
+	    if (hasTexture && !getTexture().isSnapshot()) view.onUnloadSprite(this);
 	    QuickTiGame2dGameView.deleteGLBuffer(frames_vbos);
 	    loaded = false;
 	}
@@ -772,6 +773,14 @@ public class QuickTiGame2dSprite {
 		return image;
 	}
 	
+	public String getTag() {
+		return tag;
+	}
+
+	public void setTag(String tag) {
+		this.tag = tag;
+	}
+
 	public int getWidth() {
 		return width;
 	}

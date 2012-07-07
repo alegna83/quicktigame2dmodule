@@ -47,6 +47,7 @@
 
 @interface QuickTiGame2dSprite : NSObject {
     NSString* image;
+    NSString* tag;
     
 	GLuint* frames_vbos;
 	float x;
@@ -114,6 +115,7 @@
 @property (readwrite) NSInteger margin;
 @property (readwrite) BOOL hasSheet;
 @property (readwrite, copy) NSString* image;
+@property (readwrite, copy) NSString* tag;
 @property (readwrite) NSInteger width;
 @property (readwrite) NSInteger height;
 @property (readwrite) float x;

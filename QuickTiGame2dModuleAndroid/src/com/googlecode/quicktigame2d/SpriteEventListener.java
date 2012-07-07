@@ -28,8 +28,8 @@
 package com.googlecode.quicktigame2d;
 
 public interface SpriteEventListener {
-	void onLoadSprite(String name);
-	void onUnloadSprite(String name);
+	void onLoadSprite(QuickTiGame2dSprite sprite);
+	void onUnloadSprite(QuickTiGame2dSprite sprite);
 	void onStartTransform(QuickTiGame2dTransform transform);
 	void onCompleteTransform(QuickTiGame2dTransform transform);
 }

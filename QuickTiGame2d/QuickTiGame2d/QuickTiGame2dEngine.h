@@ -70,6 +70,7 @@ typedef struct CameraInfo {
     
     NSMutableDictionary* notificationEventCache;
     NSMutableDictionary* fpsNotificationEventCache;
+    NSMutableDictionary* sceneNotificationEventCache;
     
     UIInterfaceOrientation orientation;
     BOOL shouldRotateOrientation;
@@ -102,6 +103,9 @@ typedef struct CameraInfo {
     NSMutableArray* cameraTransformsToBeRemoved;
     
     QuickTiGame2dScene* hudScene;
+    QuickTiGame2dScene* previousScene;
+    
+    BOOL resetPreviousScene;
 }
 @property (readwrite) GLint viewportWidth;
 @property (readwrite) GLint viewportHeight;
@@ -111,6 +115,7 @@ typedef struct CameraInfo {
 @property (readwrite) BOOL enableOnDrawFrameEvent;
 @property (readwrite) BOOL enableOnFpsEvent;
 @property (readwrite) NSInteger onFpsInterval;
+@property (readwrite) BOOL usePerspective;
 
 - (void)drawFrame;
 - (void)onLoad:(GLint)framebufferWidth height:(GLint)framebufferHeight;
@@ -159,5 +164,7 @@ typedef struct CameraInfo {
 
 -(void)addHUD:(QuickTiGame2dSprite*)sprite;
 -(void)removeHUD:(QuickTiGame2dSprite*)sprite;
+
+-(void)startCurrentScene;
 
 @end

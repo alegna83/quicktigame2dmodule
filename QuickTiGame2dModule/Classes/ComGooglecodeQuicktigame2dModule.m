@@ -98,7 +98,7 @@
 	// reloaded once memory is available - such as caches
 	[super didReceiveMemoryWarning:notification];
     
-    [self fireEvent:@"onlowmemory"];
+    [self fireEvent:@"onlowmemory" withObject:nil propagate:NO];
 }
 
 #pragma mark Listener Notifications

@@ -31,6 +31,8 @@
 - (void)startAnimation;
 - (void)stopAnimation;
 - (void)setAnimationFrameInterval:(NSInteger)frameInterval;
+- (NSDictionary*)touchToDictionary: (UITouch*) touch;
+- (void)addTouches: (NSSet*)touches toEvent:(NSMutableDictionary*)target;
 @end
 
 @implementation ComGooglecodeQuicktigame2dGameView
@@ -66,6 +68,8 @@
     currentlyAnimating = FALSE;
     displayLinkInterval = 1;
     displayLink = nil;
+    
+    enableMultiTouchEvents = FALSE;
     
     animationTimerInterval = 1.0 / 60.0;
     
@@ -250,6 +254,14 @@
     [game pause];
 }
 
+- (BOOL)usePerspective {
+    return game.usePerspective;
+}
+
+- (void)setUsePerspective:(BOOL)value {
+    game.usePerspective = value;
+}
+
 - (NSInteger)gameviewportWidth {
     return game.viewportWidth;
 }
@@ -381,6 +393,10 @@ static void freeToImageBuffer(void *info, const void *data, size_t size) {
     free((void*)data);
 }
 
+-(void)startCurrentScene {
+    [game startCurrentScene];
+}
+
 -(UIImage*)toImage {
     NSInteger dataLength = framebufferWidth * framebufferHeight * 4;
     GLubyte *buffer =  (GLubyte *) malloc(dataLength);
@@ -408,6 +424,153 @@ static void freeToImageBuffer(void *info, const void *data, size_t size) {
     CGDataProviderRelease(provider);
     
     return uiImage;
+}
+
+#pragma mark Multi-Touch Events
+
+/*
+ * Multi-Touch Support
+ * 
+ * Call GameView.registerForMultiTouch() to enable multi touch events.
+ * 
+ * This does not disable gestures including 'click' and 'dblclick' on iOS.
+ * 
+ * To handle multiple pointer down, listen to 'touchstart' event and use its 'points' parameter.
+ * To handle multiple pointer up,   listen to 'touchend' event and use its 'points' parameter.
+ */
+-(void)registerForMultiTouch {
+    enableMultiTouchEvents = TRUE;
+}
+
+- (NSDictionary*)touchToDictionary: (UITouch*) touch {
+    NSMutableDictionary *result = [NSMutableDictionary dictionaryWithDictionary:[TiUtils pointToDictionary:[touch locationInView:self]]];
+    [result setValue:[TiUtils pointToDictionary:[touch locationInView:nil]] forKey:@"globalPoint"];
+    return result;
+}
+
+- (void)addTouches: (NSSet*)touches toEvent:(NSMutableDictionary*)target {
+    NSMutableDictionary *ts = [NSMutableDictionary dictionary];
+    for (UITouch* t in touches) {
+        [ts setObject:[self touchToDictionary:t] forKey:[NSString stringWithFormat:@"%p",t]];
+    }
+    [target setValue:ts forKey:@"points"];
+}
+
+- (void)processTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    if (!enableMultiTouchEvents) {
+        [super processTouchesBegan:touches withEvent:event];
+        return;
+    }
+    
+    UITouch *touch = [touches anyObject];
+	
+	if ([self hasTouchableListener])
+	{
+		NSMutableDictionary *evt = [NSMutableDictionary dictionaryWithDictionary:[TiUtils pointToDictionary:[touch locationInView:self]]];
+		[evt setValue:[TiUtils pointToDictionary:[touch locationInView:nil]] forKey:@"globalPoint"];
+        [self addTouches:event.allTouches toEvent:evt];
+
+		if ([self.proxy _hasListeners:@"touchstart"])
+		{
+			[self.proxy fireEvent:@"touchstart" withObject:evt propagate:YES];
+			[self handleControlEvents:UIControlEventTouchDown];
+		}
+        // Click handling is special; don't propagate if we have a delegate,
+        // but DO invoke the touch delegate.
+		// clicks should also be handled by any control the view is embedded in.
+		if ([touch tapCount] == 1 && [self.proxy _hasListeners:@"click"])
+		{
+			if (self.touchDelegate == nil) {
+				[self.proxy fireEvent:@"click" withObject:evt propagate:YES];
+				return;
+			} else {
+				[self.touchDelegate touchesBegan:touches withEvent:event];
+			}
+		} else if ([touch tapCount] == 2 && [self.proxy _hasListeners:@"dblclick"]) {
+			[self.proxy fireEvent:@"dblclick" withObject:evt propagate:YES];
+			return;
+		}
+	}
+}
+
+- (void)processTouchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    if (!enableMultiTouchEvents) {
+        [super processTouchesMoved:touches withEvent:event];
+        return;
+    }
+    
+	UITouch *touch = [touches anyObject];
+	if ([self hasTouchableListener])
+	{
+		NSMutableDictionary *evt = [NSMutableDictionary dictionaryWithDictionary:[TiUtils pointToDictionary:[touch locationInView:self]]];
+		[evt setValue:[TiUtils pointToDictionary:[touch locationInView:nil]] forKey:@"globalPoint"];
+        [self addTouches:event.allTouches toEvent:evt];
+
+		if ([self.proxy _hasListeners:@"touchmove"])
+		{
+			[self.proxy fireEvent:@"touchmove" withObject:evt propagate:YES];
+		}
+	}
+	
+	if (self.touchDelegate!=nil)
+	{
+		[self.touchDelegate touchesMoved:touches withEvent:event];
+	}
+}
+
+- (void)processTouchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    if (!enableMultiTouchEvents) {
+        [super processTouchesEnded:touches withEvent:event];
+        return;
+    }
+    
+	if ([self hasTouchableListener])
+	{
+		UITouch *touch = [touches anyObject];
+		NSMutableDictionary *evt = [NSMutableDictionary dictionaryWithDictionary:[TiUtils pointToDictionary:[touch locationInView:self]]];
+		[evt setValue:[TiUtils pointToDictionary:[touch locationInView:nil]] forKey:@"globalPoint"];
+        [self addTouches:event.allTouches toEvent:evt];
+
+		if ([self.proxy _hasListeners:@"touchend"])
+		{
+			[self.proxy fireEvent:@"touchend" withObject:evt propagate:YES];
+			[self handleControlEvents:UIControlEventTouchCancel];
+		}
+	}
+	
+	if (self.touchDelegate!=nil)
+	{
+		[self.touchDelegate touchesEnded:touches withEvent:event];
+	}
+}
+
+- (void)processTouchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    if (!enableMultiTouchEvents) {
+        [super processTouchesCancelled:touches withEvent:event];
+        return;
+    }
+    
+	if ([self hasTouchableListener])
+	{
+		UITouch *touch = [touches anyObject];
+		CGPoint point = [touch locationInView:self];
+        NSMutableDictionary *evt = [NSMutableDictionary dictionaryWithDictionary:[TiUtils pointToDictionary:point]];
+        [self addTouches:event.allTouches toEvent:evt];
+
+		if ([self.proxy _hasListeners:@"touchcancel"])
+		{
+			[self.proxy fireEvent:@"touchcancel" withObject:evt propagate:YES];
+		}
+	}
+	
+	if (self.touchDelegate!=nil)
+	{
+		[self.touchDelegate touchesCancelled:touches withEvent:event];
+	}
 }
 
 @end

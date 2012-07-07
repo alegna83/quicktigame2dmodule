@@ -56,7 +56,7 @@
  * onload, ongainedfocus, enterframe, onlostfocus, ondispose
  */
 - (void)onNotification:(NSString*)type userInfo:(NSDictionary*)userInfo {
-    [self fireEvent:type withObject:userInfo];
+    [self fireEvent:type withObject:userInfo propagate:NO];
     
     for (ComGooglecodeQuicktigame2dSpriteProxy* sprite in spriteStack) {
         [sprite onNotification:type userInfo:userInfo];
@@ -64,11 +64,11 @@
 }
 
 - (void)onActivate {
-    [self fireEvent:@"activated"];
+    [self fireEvent:@"activated" withObject:nil propagate:NO];
 }
 
 - (void)onDeactivate {
-    [self fireEvent:@"deactivated"];
+    [self fireEvent:@"deactivated" withObject:nil propagate:NO];
 }
 
 #pragma Public APIs

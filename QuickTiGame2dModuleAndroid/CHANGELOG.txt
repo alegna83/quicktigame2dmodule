@@ -5,3 +5,12 @@ Version 1.1 (released 2012-05-14)
   . Add: TextSprite that can render text strings
   . Fix: MapSprite cause concurrent exception on Android
   . Fix: game.screen returns retina resolution on non-retina devices with iOS 4
+Version 1.2 (released 2012-07-04)
+  . Add: MultiTouch Support for Android & iOS
+  . Add: Transform followParent* options that indicate parameters to be applied to child
+  . Add: Missing functions in sprite sheet on Android
+  . Add: Simple sound pool for Android 
+  . Update: Game view start/stop should be executed on ui thread.
+  . Update: Performance improvement on event propagation
+  . Fix: Using unloadTexture before nulling gameview leads to crash
+  . Fix: child transform with relative position does not work when sprite size is not square rectangle on iOS

@@ -27,15 +27,22 @@
 // 
 package com.googlecode.quicktigame2d;
 
+import java.util.HashMap;
+
 import org.appcelerator.kroll.KrollDict;
+import org.appcelerator.titanium.TiC;
 import org.appcelerator.titanium.TiLifecycle.OnLifecycleEvent;
 import org.appcelerator.titanium.proxy.TiViewProxy;
 import org.appcelerator.titanium.view.TiUIView;
 
 import android.app.Activity;
+import android.graphics.Rect;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnTouchListener;
 
 public class GameView extends TiUIView implements OnLifecycleEvent {
-	
+
 	public GameView(TiViewProxy proxy) {
 		super(proxy);
 		setNativeView(new QuickTiGame2dGameView(proxy.getActivity()));
@@ -215,6 +222,14 @@ public class GameView extends TiUIView implements OnLifecycleEvent {
 		getGameView().removeListener(listener);
 	}
 	
+	public boolean isUsePerspective() {
+		return getGameView().isUsePerspective();
+	}
+
+	public void setUsePerspective(boolean usePerspective) {
+		getGameView().setUsePerspective(usePerspective);
+	}
+	
 	public boolean isOnDrawFrameEventEnabled() {
 		return getGameView().isOnDrawFrameEventEnabled();
 	}
@@ -277,5 +292,90 @@ public class GameView extends TiUIView implements OnLifecycleEvent {
 	
 	public void setTextureFilter(int filter) {
 		QuickTiGame2dGameView.textureFilter = filter;
+	}
+
+	/*
+	 * Multi-Touch Support
+	 * 
+	 * Call GameView.registerForMultiTouch() to enable multi touch events.
+	 * 
+	 * This disables all gestures including 'click' and 'dblclick' on Android.
+	 * 
+	 * To handle multiple pointer down, listen to 'touchstart_pointer' event.
+	 * To handle multiple pointer up,   listen to 'touchend_pointer' event.
+	 */
+	private static HashMap<Integer, String> motionEvents = new HashMap<Integer,String>();
+	static
+	{
+		motionEvents.put(MotionEvent.ACTION_DOWN, TiC.EVENT_TOUCH_START);
+		motionEvents.put(MotionEvent.ACTION_UP, TiC.EVENT_TOUCH_END);
+		motionEvents.put(MotionEvent.ACTION_POINTER_DOWN, TiC.EVENT_TOUCH_START + "_pointer");
+		motionEvents.put(MotionEvent.ACTION_POINTER_UP, TiC.EVENT_TOUCH_END + "_pointer");
+		motionEvents.put(MotionEvent.ACTION_MOVE, TiC.EVENT_TOUCH_MOVE);
+		motionEvents.put(MotionEvent.ACTION_CANCEL, TiC.EVENT_TOUCH_CANCEL);
+	}
+	
+	/*
+	 * Copied from TiUIView.dictFromEvent, added multi-touch support
+	 */
+	@Override
+	protected KrollDict dictFromEvent(MotionEvent e) {
+		KrollDict data = super.dictFromEvent(e);
+		
+		KrollDict points = new KrollDict();
+		int count  = e.getPointerCount();
+		int action = e.getActionMasked();
+		
+		if (action == MotionEvent.ACTION_POINTER_UP || action == MotionEvent.ACTION_POINTER_DOWN) {
+			int pointerIndex = e.getActionIndex();
+			
+			KrollDict point = new KrollDict();
+			point.put(TiC.EVENT_PROPERTY_X, (double)e.getX(pointerIndex));
+			point.put(TiC.EVENT_PROPERTY_Y, (double)e.getY(pointerIndex));
+			points.put(String.valueOf(e.getPointerId(pointerIndex)), point);
+		} else {
+			for (int pointerIndex = 0; pointerIndex < count; pointerIndex++) {
+				KrollDict point = new KrollDict();
+				point.put(TiC.EVENT_PROPERTY_X, (double)e.getX(pointerIndex));
+				point.put(TiC.EVENT_PROPERTY_Y, (double)e.getY(pointerIndex));
+				points.put(String.valueOf(e.getPointerId(pointerIndex)), point);
+			}
+		}
+		data.put("points", points);
+
+		return data;
+	}
+	
+	public void registerForMultiTouch() {
+		if (allowRegisterForTouch()) {
+			registerMultiTouchEvents(getNativeView());
+		}
+	}
+	
+	protected void registerMultiTouchEvents(final View touchable) {
+		touchable.setOnTouchListener(new OnTouchListener() {
+			public boolean onTouch(View view, MotionEvent event) {
+
+				String motionEvent = motionEvents.get(event.getActionMasked());
+				if (motionEvent != null) {
+					if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+						Rect r = new Rect(0, 0, view.getWidth(), view.getHeight());
+						int actualAction = r.contains((int) event.getX(), (int) event.getY()) ? MotionEvent.ACTION_UP
+							: MotionEvent.ACTION_CANCEL;
+
+						String actualEvent = motionEvents.get(actualAction);
+						if (proxy.hierarchyHasListener(actualEvent)) {
+							proxy.fireEvent(actualEvent, dictFromEvent(event));
+						}
+					} else {
+						if (proxy.hierarchyHasListener(motionEvent)) {
+							proxy.fireEvent(motionEvent, dictFromEvent(event));
+						}
+					}
+				}
+
+				return false;
+			}
+		});
 	}
 }

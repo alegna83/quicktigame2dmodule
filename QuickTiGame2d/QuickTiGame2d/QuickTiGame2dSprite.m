@@ -50,7 +50,7 @@
 @implementation QuickTiGame2dSprite
 @synthesize loaded;
 @synthesize hasTexture, hasSheet;
-@synthesize image;
+@synthesize image, tag;
 @synthesize frameCount, frameIndex, border, margin;
 @synthesize width, height;
 @synthesize x, y;
@@ -131,6 +131,8 @@
         followParentTransformColor    = TRUE;
         followParentTransformFrameIndex = FALSE;
         followParentTransformRotationCenter = TRUE;
+        
+        tag = @"";
     }
     return self;
 }
@@ -226,12 +228,12 @@
 }
 
 -(void)fireOnLoadSprite {
-    NSDictionary* userInfo = [NSDictionary dictionaryWithObject:image forKey:@"name"];
+    NSDictionary* userInfo = [NSDictionary dictionaryWithObjectsAndKeys:image, @"name", tag, @"tag", nil];
     [[QuickTiGame2dEngine sharedNotificationCenter] postNotificationName:@"onLoadSprite" object:self userInfo:userInfo];
 }
 
 -(void)fireOnUnloadSprite {
-    NSDictionary* userInfo = [NSDictionary dictionaryWithObject:image forKey:@"name"];
+    NSDictionary* userInfo = [NSDictionary dictionaryWithObjectsAndKeys:image, @"name", tag, @"tag", nil];
     [[QuickTiGame2dEngine sharedNotificationCenter] postNotificationName:@"onUnloadSprite" object:self userInfo:userInfo];
 }
 

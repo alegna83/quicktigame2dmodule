@@ -49,6 +49,8 @@
     BOOL layoutSubviewsDone;
     
     QuickTiGame2dEngine* game;
+    
+    BOOL enableMultiTouchEvents;
 }
 @property (readonly) GLint framebufferWidth;
 @property (readonly) GLint framebufferHeight;
@@ -64,6 +66,7 @@
 @property (readwrite) BOOL enableOnFpsEvent;
 @property (readwrite) NSInteger onFpsInterval;
 @property (readwrite) NSInteger timerType;
+@property (readwrite) BOOL usePerspective;
 
 - (void)attachContext;
 - (void)detachContext;
@@ -93,4 +96,7 @@
 -(GLenum)correctionHint;
 -(void)setCorrectionHint:(GLenum)hint;
 -(UIImage*)toImage;
+
+-(void)registerForMultiTouch;
+-(void)startCurrentScene;
 @end

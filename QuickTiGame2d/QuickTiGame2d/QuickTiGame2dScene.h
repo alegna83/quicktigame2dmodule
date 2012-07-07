@@ -68,6 +68,7 @@
 -(void)onChangeSpriteZOrder:(NSNotification*)notification;
 -(void)onLoad;
 -(void)drawFrame;
+-(void)onDeactivate;
 -(void)onDispose;
 
 -(BOOL)hasSprite;

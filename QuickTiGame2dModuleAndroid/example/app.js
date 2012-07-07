@@ -15,111 +15,130 @@ game.color(0, 0, 0);
 
 game.debug = true;
 
+var shapes = new Array();
+
 // Create game scene
 var scene = quicktigame2d.createScene();
-
-// create new 64x64 shape
-var shape = quicktigame2d.createSprite({width:64, height:64});
-
-// color(red, green, blue) takes values from 0 to 1
-shape.color(1, 0, 0);
-
-// add your shape to the scene
-scene.add(shape);
 
 // add your scene to game view
 game.pushScene(scene);
 
+var TOUCH_SCALE = 1;
+
 // Onload event is called when the game is loaded.
-// The game.screen.width and game.screen.height are not yet set until this onload event.
 game.addEventListener('onload', function(e) {
-    // Your game screen size is set here if you did not specifiy game width and height using screen property.
-    // Note that Ti.UI.View returns non-retina values (320x480) as view size,
-    // on the other hand the game screen property returns retina values (based on 640x960) on retina devices.
-    Ti.API.info("view size: " + game.size.width + "x" + game.size.height);
-    Ti.API.info("game screen size: " + game.screen.width + "x" + game.screen.height);
+     // We should calculate the view scale because game.size.width and height may be changed due to the parent layout.
+    TOUCH_SCALE = game.screen.width  / game.size.width;
     
-    // Move your shape to center of the screen
-    shape.x = (game.screen.width  * 0.5) - (shape.width  * 0.5);
-    shape.y = (game.screen.height * 0.25) - (shape.height * 0.5);
+    // Enable MultiTouch support
+    game.registerForMultiTouch();
     
     // Start the game
     game.start();
 });
 
-game.addEventListener('enterframe', function(e) {
-	
-    // Move your shape
-    shape.x = shape.x + 2;
+/* 
+ * Listener function for 'touchstart' and 'touchstart_pointer' events.
+ * Before using touch event, call registerForMultiTouch() to enable multi touch support.
+ *
+ * Note that ALL gesture events including 'click' and 'dblclick' are disabled on Android
+ * when multi touch support is enabled
+ * 
+ * Use e.points to handle multiple pointers. 
+ *
+ * 'touchstart_pointer' is called when a non-primary pointer has gone down on Android.
+ * 'touchstart_pointer' event is never used on iOS.
+ * 
+ * See http://developer.android.com/reference/android/view/MotionEvent.html for details about motion events on Android.
+ */
+var onTouchStart = function(e) {
     
-    // Rotate your shape
-    shape.rotate(shape.angle + 6);
+    // On Android, 'touchstart_pointer' event is called right after firing 'touchstart' event when multi touch is detected.
     
-    // If the shape moves outside of the screen,
-    // then the shape appears from the other side of the screen
-    if (shape.x + shape.width > game.screen.width) {
-        shape.x = -shape.width;
+    Ti.API.info(e.type + ": " + JSON.stringify(e.points));
+    
+    for (var pointName in e.points) {
+        
+        if (typeof shapes[pointName] === 'undefined' || shapes[pointName] == null) {
+            shapes[pointName] = quicktigame2d.createSprite({width:64, height:64});
+            
+            if (e.type == 'touchstart') {
+                shapes[pointName].color(1, 0, 0);  // draw red point when shape is created at touchstart
+            } else if (e.type == 'touchmove') {
+                shapes[pointName].color(0, 1, 0);  // draw green point when shape is created at touchmove
+            } else {
+                shapes[pointName].color(0, 0, 1);  // draw blue point when shape is created at touchstart__pointer
+            }
+            
+            scene.add(shapes[pointName]);
+        }
+        
+        shapes[pointName].center = {x: e.points[pointName].x * TOUCH_SCALE, y:e.points[pointName].y * TOUCH_SCALE};
     }
-});
+};
 
-game.addEventListener('touchstart', function(e) {
-    var f = game.toImage();
-    Titanium.Media.saveToPhotoGallery(f, {
-		success: function(e) {
-			Titanium.UI.createAlertDialog({
-				title:'Photo Gallery',
-				message:'Saved'
-			}).show();		
-		},
-		error: function(e) {
-			Titanium.UI.createAlertDialog({
-				title:'Error saving',
-				message:e.error
-			}).show();
-		}    	
-    });
-
-    /**
-    // We should calculate the view scale because Ti.UI.View returns non-retina values.
-    // This scale should be 2 on retina devices.
-    var scale = game.screen.width  / game.width;
+/* 
+ * Listener function for 'touchend' and 'touchend_pointer' events.
+ * Before using touch event, call registerForMultiTouch() to enable multi touch support.
+ * Use e.points to handle multiple pointers
+ *
+ * Note that ALL gesture events including 'click' and 'dblclick' are disabled on Android
+ * when multi touch support is enabled
+ *
+ * 'touchend_pointer' is called when a non-primary pointer has gone up on Android.
+ * 'touchend_pointer' event is never used on iOS.
+ * 
+ * See http://developer.android.com/reference/android/view/MotionEvent.html for details about motion events on Android.
+ */
+var onTouchEnd = function(e) {
     
-    // Move your shape to center of the event position
-    shape.x = (e.x * scale) - (shape.width * 0.5);
-    shape.y = (e.y * scale) - (shape.width * 0.5);
-     **/
-});
+    // On Android, 'touchend_pointer' event is called before firing 'touchend' event when multi touch is detected.
+    
+    Ti.API.info(e.type + ": " + JSON.stringify(e.points));
+    
+    for (var pointName in e.points) {
+        
+        if (typeof shapes[pointName] === 'undefined' || shapes[pointName] == null) {
+            Ti.API.info("Couldn't find touch: " + pointName);
+            continue;
+        }
+        
+        scene.remove(shapes[pointName]);
+        
+        shapes[pointName] = null;
+        delete shapes[pointName];
+    }
+    
+    // clear all rectangles because all poiinters are gone
+    if (e.type == 'touchend') {
+        for (var pointName in shapes) {
+            if (typeof shapes[pointName] === 'undefined' || shapes[pointName] == null) {
+                continue;
+            }
+            scene.remove(shapes[pointName]);
+            shapes[pointName] = null;
+        }
+        shapes.length = 0;
+    }
+};
+
+/* 
+ * Listener function for 'touchmove' events.
+ * Before using touch event, call registerForMultiTouch() to enable multi touch support.
+ * Use e.points to handle multiple pointers
+ *
+ * Note that ALL gesture events including 'click' and 'dblclick' are disabled on Android
+ * when multi touch support is enabled
+ *
+ */
+
+game.addEventListener('touchstart', onTouchStart);
+game.addEventListener('touchmove',  onTouchStart);
+game.addEventListener('touchstart_pointer', onTouchStart); // Called only on Android
+
+game.addEventListener('touchend', onTouchEnd);
+game.addEventListener('touchend_pointer', onTouchEnd); // Called only on Android
 
 // Add your game view
 window.add(game);
-
-var centerLabel = Titanium.UI.createLabel({
-    color:'black',
-    backgroundColor:'white',
-    text:'touch screen to move rectangle',
-    font:{fontSize:20,fontFamily:'Helvetica Neue'},
-    textAlign:'center',
-    width:'auto',
-    height:'auto'
-});
-
-game.debug = true;
-
-game.enableOnFpsEvent = true; // onfps event is disabled by default so enable this
-game.onFpsInterval    = 5000; // set onfps interval msec (default value equals 5,000 msec)
-
-game.addEventListener('onfps', function(e) {
-    Ti.API.info(e.fps.toFixed(2) + " fps");
-});
-
-Ti.API.info("Label: " + centerLabel.width + "x" + centerLabel.height);
-
-quicktigame2d.addEventListener('onlowmemory', function(e) {
-    Ti.API.warn("Low Memory");
-});
-
-// add label to the window
-window.add(centerLabel);
-
 window.open({fullscreen:true, navBarHidden:true});
-

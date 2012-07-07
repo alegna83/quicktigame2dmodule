@@ -42,6 +42,8 @@ import com.googlecode.quicktigame2d.GameView;
 import com.googlecode.quicktigame2d.GameViewEventListener;
 import com.googlecode.quicktigame2d.QuickTiGame2dCameraInfo;
 import com.googlecode.quicktigame2d.QuickTiGame2dConstant;
+import com.googlecode.quicktigame2d.QuickTiGame2dScene;
+import com.googlecode.quicktigame2d.QuickTiGame2dSprite;
 import com.googlecode.quicktigame2d.QuickTiGame2dTransform;
 import com.googlecode.quicktigame2d.Quicktigame2dModule;
 
@@ -56,6 +58,7 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 	private HashMap<String, Object> cameraInfoCache = new HashMap<String, Object>();
 
 	private TransformProxy cameraTransform;
+	private SceneProxy previousScene = null;
 	
 	// Constructor
 	public GameViewProxy() {
@@ -153,22 +156,20 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 
 	@Kroll.method
 	public SceneProxy pushScene(SceneProxy scene) {
-		if (topScene() != null) topScene().onDeactivate();
+		previousScene = topScene();
 		
 		getView().pushScene(scene.getScene());
 		sceneStack.push(scene);
-		
-		scene.onActivate();
 		return scene;
 	}
 	
 	@Kroll.method
 	public SceneProxy popScene() {
+		previousScene = topScene();
+		
 		getView().popScene();
 		try {
 			SceneProxy proxy = sceneStack.pop();
-			proxy.onDeactivate();
-			if (topScene() != null) topScene().onActivate();
 			
 			return proxy;
 		} catch (EmptyStackException e) {
@@ -187,7 +188,7 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 	
 	@Kroll.method
 	public SceneProxy replaceScene(SceneProxy scene) {
-		if (topScene() != null) topScene().onDeactivate();
+		previousScene = topScene();
 		
 		try {
 			sceneStack.pop();
@@ -197,7 +198,6 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		
 		getView().replaceScene(scene.getScene());
 		sceneStack.push(scene);
-		scene.onActivate();
 		
 		return topScene();
 	}
@@ -241,6 +241,11 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 	public void moveCamera(TransformProxy cameraTransform) {
 		this.cameraTransform = cameraTransform;
 		getView().moveCamera(this.cameraTransform.getTransformer());
+	}
+	
+	@Kroll.method
+	public void registerForMultiTouch() {
+		getView().registerForMultiTouch();
 	}
 
 	@Kroll.setProperty @Kroll.method
@@ -321,7 +326,17 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		
 		return cameraInfoCache;
 	}
+
+	@Kroll.setProperty @Kroll.method
+	public void setUsePerspective(boolean use) {
+		getView().setUsePerspective(use);
+	}
 	
+	@Kroll.getProperty @Kroll.method
+	public boolean getUsePerspective() {
+		return getView().isUsePerspective();
+	}
+
 	@Kroll.setProperty @Kroll.method
 	public void setOpaque(boolean enable) {
 		// do nothing because opaque is not supported on Android
@@ -441,7 +456,7 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		notificationEventCache.put("eventName", "onsurfacechanged");
 		notificationEventCache.put("width",  getView().getGameViewWidth());
 		notificationEventCache.put("height", getView().getGameViewHeight());
-		this.fireEvent("onsurfacechanged", notificationEventCache);
+		this.fireEvent("onsurfacechanged", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 
@@ -453,7 +468,7 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		notificationEventCache.put("eventName", "onload");
 		notificationEventCache.put("width",  getView().getGameViewWidth());
 		notificationEventCache.put("height", getView().getGameViewHeight());
-		this.fireEvent("onload", notificationEventCache);
+		this.fireEvent("onload", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 
@@ -463,7 +478,7 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		notificationEventCache.put("uptime", uptime());
 		notificationEventCache.put("delta", delta);
 		notificationEventCache.put("eventName", "enterframe");
-		this.fireEvent("enterframe", notificationEventCache);
+		this.fireEvent("enterframe", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 
@@ -476,29 +491,35 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		notificationEventCache.put("delta", delta);
 		notificationEventCache.put("fps",   fps);
 		notificationEventCache.put("eventName", "onfps");
-		this.fireEvent("onfps", notificationEventCache);
+		this.fireEvent("onfps", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 	
 	@Override
-	public void onLoadSprite(String name) {
+	public void onLoadSprite(QuickTiGame2dSprite sprite) {
+		String name = sprite.getImage();
+		
 		KrollDict notificationEventCache = new KrollDict();
 		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, String.format("GameViewProxy.onLoadSprite %s", name));
 		notificationEventCache.put("eventName", "onloadsprite");
 		notificationEventCache.put("uptime", uptime());
 		notificationEventCache.put("name", name);
-		this.fireEvent("onloadsprite", notificationEventCache);
+		notificationEventCache.put("tag", sprite.getTag());
+		this.fireEvent("onloadsprite", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 
 	@Override
-	public void onUnloadSprite(String name) {
+	public void onUnloadSprite(QuickTiGame2dSprite sprite) {
+		String name = sprite.getImage();
+		
 		KrollDict notificationEventCache = new KrollDict();
 		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, String.format("GameViewProxy.onUnloadSprite %s", name));
 		notificationEventCache.put("eventName", "onunloadsprite");
 		notificationEventCache.put("uptime", uptime());
 		notificationEventCache.put("name", name);
-		this.fireEvent("onunloadsprite", notificationEventCache);
+		notificationEventCache.put("tag", sprite.getTag());
+		this.fireEvent("onunloadsprite", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 
@@ -508,7 +529,7 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, "GameViewProxy.onDispose");
 		notificationEventCache.put("eventName", "ondispose");
 		notificationEventCache.put("uptime", uptime());
-		this.fireEvent("ondispose", notificationEventCache);
+		this.fireEvent("ondispose", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 
@@ -518,7 +539,7 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, "GameViewProxy.onGainedFocus");
 		notificationEventCache.put("eventName", "ongainedfocus");
 		notificationEventCache.put("uptime", uptime());
-		this.fireEvent("ongainedfocus", notificationEventCache);
+		this.fireEvent("ongainedfocus", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 
@@ -528,7 +549,7 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, "GameViewProxy.onLostFocus");
 		notificationEventCache.put("eventName", "onlostfocus");
 		notificationEventCache.put("uptime", uptime());
-		this.fireEvent("onlostfocus", notificationEventCache);
+		this.fireEvent("onlostfocus", notificationEventCache, false);
 		if (topScene() != null) topScene().onNotification(notificationEventCache);
 	}
 
@@ -578,6 +599,21 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 					cameraTransform = null;
 				}
 			}
+		}
+	}
+
+	@Override
+	public void onActivateScene(QuickTiGame2dScene scene) {
+		if (topScene() != null && topScene().getScene() == scene) {
+			topScene().onActivate();
+		}
+	}
+
+	@Override
+	public void onDeactivateScene(QuickTiGame2dScene scene) {
+		if (previousScene != null && previousScene.getScene() == scene) {
+			previousScene.onDeactivate();
+			previousScene = null;
 		}
 	}
 }

@@ -43,6 +43,7 @@ import javax.microedition.khronos.opengles.GL10;
 import javax.microedition.khronos.opengles.GL11;
 import javax.microedition.khronos.opengles.GL11ExtensionPack;
 
+import android.app.Activity;
 import android.content.Context;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLSurfaceView.Renderer;
@@ -50,10 +51,11 @@ import android.opengl.GLU;
 
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.util.TiOrientationHelper;
+import org.appcelerator.titanium.TiContext.OnLifecycleEvent;
 import com.googlecode.quicktigame2d.opengl.GLHelper;
 import com.googlecode.quicktigame2d.util.Base64;
 
-public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
+public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, OnLifecycleEvent {
 
 	public static int correctionHint = GL10.GL_NICEST;
 	public static int textureFilter  = GL10.GL_NEAREST;
@@ -130,6 +132,8 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 	private List<QuickTiGame2dTransform> cameraTransformsToBeRemoved = new ArrayList<QuickTiGame2dTransform>();
 	
 	private QuickTiGame2dScene hudScene;
+	private QuickTiGame2dScene previousScene = null;
+	private boolean resetPreviousScene = false;
 	
 	public QuickTiGame2dGameView(Context context) {
 		super(context);
@@ -212,18 +216,18 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 		}
 	}
 	
-	public void onLoadSprite(String name) {
+	public void onLoadSprite(QuickTiGame2dSprite sprite) {
 		synchronized (listeners) {
 			for (SpriteEventListener listener : listeners) {
-				listener.onLoadSprite(name);
+				listener.onLoadSprite(sprite);
 			}
 		}
 	}
 
-	public void onUnloadSprite(String name) {
+	public void onUnloadSprite(QuickTiGame2dSprite sprite) {
 		synchronized (listeners) {
 			for (SpriteEventListener listener : listeners) {
-				listener.onUnloadSprite(name);
+				listener.onUnloadSprite(sprite);
 			}
 		}
 	}
@@ -246,6 +250,7 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 
 	public void startCurrentScene() {
 		releaseSnapshot();
+		resetPreviousScene = true;
 	}
 	
 	public void commitLoadTexture(String texture) {
@@ -531,8 +536,16 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 		}
 		
 		restoreGLState(gl, true);
-		
+
 		QuickTiGame2dScene scene = this.topScene();
+		
+		if (previousScene != null) {
+			if (previousScene != scene) {
+				previousScene.onDeactivate();
+			} else {
+				previousScene = null;
+			}
+		}
 		
 		if (scene != null && status != GAME_STOPPED) {
 			
@@ -655,6 +668,10 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 	        snapshotSprite.onDrawFrame(gl, true);
 	    }
 		
+		loadWaitingTextures(gl);
+		unloadWaitingTextures(gl);
+		deleteWaitingGLBuffers(gl);
+		
 	    if (snapshotQueue.isEmpty()) {
 	    	synchronized(sceneCommandQueue) {
 	    		Integer sceneCommandType = sceneCommandQueue.poll();
@@ -662,14 +679,21 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 	    		if (sceneCommandType != null) {
 	    			if (sceneCommandType.intValue() == QuickTiGame2dConstant.SCENE_EVENT_POP) {
 	    				if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:popScene");
-	    				popSceneOrNull();
+	    				previousScene = popSceneOrNull();
+	    				onDeactivateScene(previousScene);
+	    				onActivateScene(topScene());
 	    			} else if (sceneCommandType.intValue() == QuickTiGame2dConstant.SCENE_EVENT_PUSH) {
 	    				if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:pushScene");
+	    				previousScene = topScene();
+	    				onDeactivateScene(previousScene);
 	    				sceneStack.push(sceneSceneQueue.poll());
+	    				onActivateScene(topScene());
 	    			} else if (sceneCommandType.intValue() == QuickTiGame2dConstant.SCENE_EVENT_REPLACE) {
 	    				if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:replaceScene");
-	    				popSceneOrNull();
+	    				previousScene = popSceneOrNull();
+	    				onDeactivateScene(previousScene);
 	    				sceneStack.push(sceneSceneQueue.poll());
+	    				onActivateScene(topScene());
 	    			}
 
 	    			sceneSceneQueue.clear();
@@ -677,13 +701,32 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 	    	}
 	    }
 	    
-		loadWaitingTextures(gl);
-		unloadWaitingTextures(gl);
-		deleteWaitingGLBuffers(gl);
+	    if (resetPreviousScene) {
+	    	previousScene = null;
+	    	resetPreviousScene = false;
+	    }
 	    
 		restoreGLState(gl, false);
 	}
 
+	protected void onActivateScene(QuickTiGame2dScene activateScene) {
+		if (activateScene == null) return;
+		synchronized (listeners) {
+			for (GameViewEventListener listener : listeners) {
+				listener.onActivateScene(activateScene);
+			}
+		}
+	}
+	
+	protected void onDeactivateScene(QuickTiGame2dScene deactivateScene) {
+		if (deactivateScene == null) return;
+		synchronized (listeners) {
+			for (GameViewEventListener listener : listeners) {
+				listener.onDeactivateScene(deactivateScene);
+			}
+		}
+	}
+	
 	@Override
 	public void onSurfaceChanged(GL10 gl, int width, int height) {
 		updateSurfaceSize(width, height);
@@ -921,6 +964,14 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 	    }
 	}
 
+	public boolean isUsePerspective() {
+		return usePerspective;
+	}
+
+	public void setUsePerspective(boolean usePerspective) {
+		this.usePerspective = usePerspective;
+	}
+
 	public boolean isOnDrawFrameEventEnabled() {
 		return enableOnDrawFrameEvent;
 	}
@@ -1072,4 +1123,42 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer {
 	public void setOnFpsInterval(int onFpsInterval) {
 		this.onFpsInterval = onFpsInterval;
 	}
+
+	@Override
+	public void onPause() {
+        if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:onPause");
+		super.onPause();
+	}
+
+	@Override
+	public void onResume() {
+        if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:onResume");
+		super.onResume();
+	}
+	
+	@Override
+	public void onPause(Activity context) {
+		this.onPause();
+	}
+
+	@Override
+	public void onResume(Activity context) {
+		this.onResume();
+	}
+
+	@Override
+	public void onStart(Activity context) {
+		// Do nothing
+	}
+
+	@Override
+	public void onStop(Activity context) {
+		// Do nothing
+	}
+	
+	@Override
+	public void onDestroy(Activity arg0) {
+
+	}
+
 }
