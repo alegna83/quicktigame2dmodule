@@ -43,9 +43,8 @@
 @synthesize current_rotate_axis, current_rotate_centerX, current_rotate_centerY, current_scaleX;
 @synthesize current_scaleY, current_red, current_green, current_blue, current_alpha;
 
-@synthesize autoreverse, reversing, completed;
-
-@synthesize bezier, bc1x, bc1y, bc2x, bc2y;
+@synthesize autoreverse, reversing, completed, locked;
+@synthesize useBezier, bezierCurvePoint1_X, bezierCurvePoint1_Y, bezierCurvePoint2_X, bezierCurvePoint2_Y;
 
 - (id)init {
     self = [super init];
@@ -57,6 +56,9 @@
         reversing   = FALSE;
         
         completed   = FALSE;
+        locked      = FALSE;
+        
+        useBezier   = FALSE;
     }
     return self;
 }
@@ -124,16 +126,15 @@
 
 -(void)apply {
     if (![self hasStarted]) return;
+    if (locked) return;
     
-    if (bezier) {
-        current_x = [self current_bezier_x:start_x to:[x floatValue]];
-        current_y = [self current_bezier_y:start_y to:[y floatValue]];
+    if (useBezier) {
+        current_x = [self currentBezier_X:start_x to:[x floatValue]];
+        current_y = [self currentBezier_Y:start_y to:[y floatValue]];
     } else {
         current_x = [self current:start_x to:[x floatValue]];
         current_y = [self current:start_y to:[y floatValue]];
     }
-    
-    
     
     current_z = [self current:start_z to:[z floatValue]];
     current_width  = [self current:start_width to:[width intValue]];
@@ -208,6 +209,13 @@
     self.y = [NSNumber numberWithFloat:_y];
 }
 
+-(void)updateBezierCurvePoint:(float)_cx1 cy1:(float)_cy1 cx2:(float)_cx2 cy2:(float)_cy2 {
+    self.bezierCurvePoint1_X = [NSNumber numberWithFloat:_cx1];
+    self.bezierCurvePoint1_Y = [NSNumber numberWithFloat:_cy1];
+    self.bezierCurvePoint2_X = [NSNumber numberWithFloat:_cx2];
+    self.bezierCurvePoint2_Y = [NSNumber numberWithFloat:_cy2];
+}
+
 -(float)current:(float)_from to:(float)_to {
     float percent = [self ease:[self elapsed] duration:self.duration];
     if ([self hasExpired]) {
@@ -215,6 +223,39 @@
     }
     return _from + (percent * (_to - _from));
 }
+
+-(float)currentBezier_X:(float)_from to:(float)_to {
+    float percent = [self ease:[self elapsed] duration:self.duration];
+    if ([self hasExpired]) {
+        percent = reversing ? 0 : 1;
+    }
+    
+    float q1, q2, q3, q4;
+    
+    q1 = percent * percent * percent * -1 + percent*percent *  3 + percent * -3 + 1;
+    q2 = percent * percent * percent *  3 + percent*percent * -6 + percent *  3;
+    q3 = percent * percent * percent * -3 + percent*percent *  3;
+    q4 = percent * percent * percent;
+    
+    return q1 * _from + q2 * [self.bezierCurvePoint1_X floatValue] + q3 * [bezierCurvePoint2_X floatValue] + q4 * _to;
+}
+
+-(float)currentBezier_Y:(float)_from to:(float)_to {
+    float percent = [self ease:[self elapsed] duration:self.duration];
+    if ([self hasExpired]) {
+        percent = reversing ? 0 : 1;
+    }
+    
+    float q1, q2, q3, q4;
+    
+    q1 = percent * percent * percent * -1 + percent*percent *  3 + percent * -3 + 1;
+    q2 = percent * percent * percent *  3 + percent*percent * -6 + percent *  3;
+    q3 = percent * percent * percent * -3 + percent*percent *  3;
+    q4 = percent * percent * percent;
+    
+    return q1 * _from + q2 * [self.bezierCurvePoint1_Y floatValue] + q3 * [self.bezierCurvePoint2_Y floatValue] + q4 * _to;
+}
+
 
 -(float)ease:(float)_elapsed duration:(float)_duration {
     if (reversing) {
@@ -438,55 +479,4 @@
 }
 
 
--(void)addBc1:(float)_x y:(float)_y {
-    self.bc1x = [NSNumber numberWithFloat:_x];
-    self.bc1y = [NSNumber numberWithFloat:_y];
-}
--(void)addBc2:(float)_x y:(float)_y {
-    self.bc2x = [NSNumber numberWithFloat:_x];
-    self.bc2y = [NSNumber numberWithFloat:_y];
-}
-
-        
--(float)current_bezier_x:(float)_from to:(float)_to;
-{
-    float t = [self ease:[self elapsed] duration:self.duration];
-    if ([self hasExpired]) {
-        t = reversing ? 0 : 1;
-    }
-    
-    float qx, qy;
-    float q1, q2, q3, q4;
-    int plotx, ploty;
-    
-    q1 = t*t*t*-1 + t*t*3 + t*-3 + 1;
-    q2 = t*t*t*3 + t*t*-6 + t*3;
-    q3 = t*t*t*-3 + t*t*3;
-    q4 = t*t*t;
-    
-    float resX = q1*_from + q2*[bc1x floatValue] + q3*[bc2x floatValue] + q4*_to;
-    //NSLog(@"t: %f, x:%f bc1x:%f, bc2x:%f, start:%f, end:%f", t, resX, [bc1x floatValue], [bc2x floatValue], _from, _to);
-    return resX;
-}
-
--(float)current_bezier_y:(float)_from to:(float)_to;
-{
-    float t = [self ease:[self elapsed] duration:self.duration];
-    if ([self hasExpired]) {
-        t = reversing ? 0 : 1;
-    }
-
-    float qx, qy;
-    float q1, q2, q3, q4;
-    int plotx, ploty;
-    
-    q1 = t*t*t*-1 + t*t*3 + t*-3 + 1;
-    q2 = t*t*t*3 + t*t*-6 + t*3;
-    q3 = t*t*t*-3 + t*t*3;
-    q4 = t*t*t;
-    
-    float resY = q1*_from + q2*[bc1y floatValue] + q3*[bc2y floatValue] + q4*_to;
-    //NSLog(@"t: %f, y:%f bc1y:%f, bc2y:%f, start:%f, end:%f", t, resY, [bc1y floatValue], [bc2y floatValue], _from, _to);
-    return resY;
-}
 @end

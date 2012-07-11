@@ -402,6 +402,10 @@ public class QuickTiGame2dSprite {
 	    animation.setCount(frames.length);
 	    animation.setInterval(interval);
 	    animation.setLoop(loop);
+	    
+	    if (frames.length > 0) {
+	    	animation.setStart(frames[0]);
+	    }
 
 	    animation.initializeIndividualFrames();
 	    for (int i = 0; i < frames.length; i++) {
@@ -1000,6 +1004,7 @@ public class QuickTiGame2dSprite {
 	protected void applyTransform(QuickTiGame2dTransform transform, boolean isChild) {
 		if (transform.isCompleted()) return;
 		
+		transform.setLocked(isChild);
 	    transform.apply();
 	    
 	    if (isChild && relativeToTransformParent) {

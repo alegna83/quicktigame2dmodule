@@ -28,6 +28,7 @@
 #import "ComGooglecodeQuicktigame2dTransformProxy.h"
 #import "QuickTiGame2dEngine.h"
 #import "QuickTiGame2dConstant.h"
+#import "TiUtils.h"
 
 @implementation ComGooglecodeQuicktigame2dTransformProxy
 
@@ -43,6 +44,7 @@
         
         notificationEventCache = [[NSMutableDictionary alloc] init];
 
+        bezierConfigCache = nil;
     }
     return self;
 }
@@ -51,6 +53,7 @@
     [[QuickTiGame2dEngine sharedNotificationCenter] removeObserver:self];
 
     RELEASE_TO_NIL(notificationEventCache);
+    RELEASE_TO_NIL(bezierConfigCache);
     RELEASE_TO_NIL(transform);
     [super dealloc];
 }
@@ -408,47 +411,48 @@
     transform.z = value;
 }
 
-
-- (id)bc1x {
-    return transform.bc1x;
-}
-
-- (void)setBc1x:(id)value {
-    ENSURE_SINGLE_ARG(value, NSNumber);
-    transform.bc1x = value;
-}
-- (id)bc1y {
-    return transform.bc1y;
-}
-
-- (void)setBc1y:(id)value {
-    ENSURE_SINGLE_ARG(value, NSNumber);
-    transform.bc1y = value;
-}
-- (id)bc2x {
-    return transform.bc2x;
-}
-
-- (void)setBc2x:(id)value {
-    ENSURE_SINGLE_ARG(value, NSNumber);
-    transform.bc2x = value;
-}
-- (id)bc2y {
-    return transform.bc2y;
-}
-
-- (void)setBc2y:(id)value {
-    ENSURE_SINGLE_ARG(value, NSNumber);
-    transform.bc2y = value;
-}
-
 - (id)bezier {
-    return NUMBOOL(transform.bezier);
+    return NUMBOOL(transform.useBezier);
 }
 
 - (void)setBezier:(id)value {
     ENSURE_SINGLE_ARG(value, NSNumber);
-    transform.bezier = [value boolValue];
+    transform.useBezier = [value boolValue];
 }
 
+- (id)bezierConfig {
+    if (bezierConfigCache == nil) {
+        bezierConfigCache = [[NSMutableDictionary alloc] init];
+    }
+    
+    [bezierConfigCache setValue:transform.bezierCurvePoint1_X forKey:@"cx1"];
+    [bezierConfigCache setValue:transform.bezierCurvePoint1_Y forKey:@"cy1"];
+    [bezierConfigCache setValue:transform.bezierCurvePoint2_X forKey:@"cx2"];
+    [bezierConfigCache setValue:transform.bezierCurvePoint2_Y forKey:@"cy2"];
+    
+    return bezierConfigCache;
+}
+
+- (void)setBezierConfig:(id)args {
+    ENSURE_SINGLE_ARG(args, NSDictionary);
+    float cx1  = [TiUtils floatValue:@"cx1"  properties:args  def:0];
+    float cy1  = [TiUtils floatValue:@"cy1"  properties:args  def:0];
+    float cx2  = [TiUtils floatValue:@"cx2"  properties:args  def:0];
+    float cy2  = [TiUtils floatValue:@"cy2"  properties:args  def:0];
+
+    if ([args objectForKey:@"cx1"] == nil) {
+        NSLog(@"[WARN] Transform.bezierConfig cx1 is missing, assume value equals 0.");
+    }
+    if ([args objectForKey:@"cy1"] == nil) {
+        NSLog(@"[WARN] Transform.bezierConfig cy1 is missing, assume value equals 0.");
+    }
+    if ([args objectForKey:@"cx2"] == nil) {
+        NSLog(@"[WARN] Transform.bezierConfig cx2 is missing, assume value equals 0.");
+    }
+    if ([args objectForKey:@"cy2"] == nil) {
+        NSLog(@"[WARN] Transform.bezierConfig cy2 is missing, assume value equals 0.");
+    }
+    
+    [transform updateBezierCurvePoint:cx1 cy1:cy1 cx2:cx2 cy2:cy2];
+}
 @end

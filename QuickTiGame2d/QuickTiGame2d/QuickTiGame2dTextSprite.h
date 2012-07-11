@@ -45,6 +45,8 @@
 @property (readonly)          CGFloat   systemFontSize;
 @property (readwrite)         UITextAlignment textAlignment;
 
+-(CGSize)sizeWithText:(NSString*)value;
+
 -(void)reload;
 -(void)onLoad;
 -(void)drawFrame;

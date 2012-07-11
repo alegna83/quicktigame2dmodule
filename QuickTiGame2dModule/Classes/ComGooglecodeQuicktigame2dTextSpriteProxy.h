@@ -28,7 +28,7 @@
 #import "ComGooglecodeQuicktigame2dSpriteProxy.h"
 
 @interface ComGooglecodeQuicktigame2dTextSpriteProxy : ComGooglecodeQuicktigame2dSpriteProxy {
-    
+    NSMutableDictionary* sizeInfoCache;
 }
 @property (nonatomic, readwrite, assign) id text;
 @property (nonatomic, readwrite, assign) id fontFamily;
@@ -36,5 +36,5 @@
 @property (nonatomic, readwrite, assign) id textAlign;
 
 -(void)reload:(id)args;
-
+-(id)sizeWithText:(id)args;
 @end

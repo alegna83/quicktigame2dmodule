@@ -106,6 +106,14 @@ public class QuickTiGame2dTransform {
     
     private boolean completed;
     private boolean isStartEventFired = false;
+    private boolean locked = false;
+    
+    // Bezier
+    private boolean useBezier = false;
+    private Number bezierCurvePoint1_X;;
+    private Number bezierCurvePoint1_Y;;
+    private Number bezierCurvePoint2_X;;
+    private Number bezierCurvePoint2_Y;;
     
     public QuickTiGame2dTransform() {
     	easing = QuickTiGame2dConstant.ANIMATION_EASING_LINEAR;
@@ -153,9 +161,16 @@ public class QuickTiGame2dTransform {
 
     public void apply() {
         if (!hasStarted()) return;
+        if (locked) return;
         
-        if (x != null) current_x = (int) current(start_x, x.floatValue());
-        if (y != null) current_y = (int) current(start_y, y.floatValue());
+        if (useBezier) {
+        	if (x != null) current_x = currentBezier_X(start_x, x.floatValue());
+        	if (y != null) current_y = currentBezier_Y(start_y, y.floatValue());
+        } else {
+        	if (x != null) current_x = current(start_x, x.floatValue());
+        	if (y != null) current_y = current(start_y, y.floatValue());
+        }
+        
         if (z != null) current_z = (int) current(start_z, z.floatValue());
         if (width != null) current_width  = (int) current(start_width, width.intValue());
         if (height != null) current_height = (int) current(start_height, height.intValue());
@@ -241,6 +256,13 @@ public class QuickTiGame2dTransform {
         y = Integer.valueOf(_y);
     }
     
+    public void updateBezierCurvePoint(float cx1, float cy1, float cx2, float cy2) {
+    	this.bezierCurvePoint1_X = Float.valueOf(cx1);
+    	this.bezierCurvePoint1_Y = Float.valueOf(cy1);
+    	this.bezierCurvePoint2_X = Float.valueOf(cx2);
+    	this.bezierCurvePoint2_Y = Float.valueOf(cy2);
+    }
+    
     private float current(float _from, float _to) {
         float percent = ease(elapsed(), duration);
         if (hasExpired()) {
@@ -248,6 +270,39 @@ public class QuickTiGame2dTransform {
         }
         return _from + (percent * (_to - _from));
     }
+    
+    private float currentBezier_X(float _from, float _to) {
+        float percent = ease(elapsed(), duration);
+        if (hasExpired()) {
+            percent = reversing ? 0 : 1;
+        }
+        
+        float q1, q2, q3, q4;
+        
+        q1 = percent * percent * percent * -1 + percent * percent *  3 + percent * -3 + 1;
+        q2 = percent * percent * percent *  3 + percent * percent * -6 + percent *  3;
+        q3 = percent * percent * percent * -3 + percent * percent *  3;
+        q4 = percent * percent * percent;
+        
+        return q1 * _from + q2 * this.bezierCurvePoint1_X.floatValue() + q3 * this.bezierCurvePoint2_X.floatValue() + q4 * _to;
+    }
+
+    private float currentBezier_Y(float _from, float _to) {
+        float percent = ease(elapsed(), duration);
+        if (hasExpired()) {
+            percent = reversing ? 0 : 1;
+        }
+
+        float q1, q2, q3, q4;
+        
+        q1 = percent * percent * percent * -1 + percent * percent * 3 + percent * -3 + 1;
+        q2 = percent * percent * percent *  3 + percent * percent *-6 + percent *  3;
+        q3 = percent * percent * percent * -3 + percent * percent * 3;
+        q4 = percent * percent * percent;
+        
+        return q1 * _from + q2 * this.bezierCurvePoint1_Y.floatValue() + q3 * this.bezierCurvePoint2_Y.floatValue() + q4 * _to;
+    }
+
 
     private float ease(float _elapsed, float _duration) {
         if (reversing) {
@@ -949,6 +1004,54 @@ public class QuickTiGame2dTransform {
 
 	public void setScale_centerY(Number scale_centerY) {
 		this.scale_centerY = scale_centerY;
+	}
+
+	public boolean isLocked() {
+		return locked;
+	}
+
+	public void setLocked(boolean locked) {
+		this.locked = locked;
+	}
+
+	public boolean isUseBezier() {
+		return useBezier;
+	}
+
+	public void setUseBezier(boolean useBezier) {
+		this.useBezier = useBezier;
+	}
+
+	public Number getBezierCurvePoint1_X() {
+		return bezierCurvePoint1_X;
+	}
+
+	public void setBezierCurvePoint1_X(Number bezierCurvePoint1_X) {
+		this.bezierCurvePoint1_X = bezierCurvePoint1_X;
+	}
+
+	public Number getBezierCurvePoint1_Y() {
+		return bezierCurvePoint1_Y;
+	}
+
+	public void setBezierCurvePoint1_Y(Number bezierCurvePoint1_Y) {
+		this.bezierCurvePoint1_Y = bezierCurvePoint1_Y;
+	}
+
+	public Number getBezierCurvePoint2_X() {
+		return bezierCurvePoint2_X;
+	}
+
+	public void setBezierCurvePoint2_X(Number bezierCurvePoint2_X) {
+		this.bezierCurvePoint2_X = bezierCurvePoint2_X;
+	}
+
+	public Number getBezierCurvePoint2_Y() {
+		return bezierCurvePoint2_Y;
+	}
+
+	public void setBezierCurvePoint2_Y(Number bezierCurvePoint2_Y) {
+		this.bezierCurvePoint2_Y = bezierCurvePoint2_Y;
 	}
 
 }

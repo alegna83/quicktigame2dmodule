@@ -27,6 +27,8 @@
 // 
 package com.googlecode.quicktigame2d.proxy;
 
+import java.util.HashMap;
+
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.annotations.Kroll;
 
@@ -69,6 +71,19 @@ public class TextSpriteProxy extends SpriteProxy {
     		setFontStyle(options.getString("fontStyle"));
     	}
     }
+	
+	@SuppressWarnings("rawtypes")
+	@Kroll.method
+	public HashMap sizeWithText(String value) {
+		HashMap<String, Object> sizeInfo = new HashMap<String, Object>();
+		
+		int[] textSize = getTextSprite().sizeWithText(value);
+		
+		sizeInfo.put("width",  Integer.valueOf(textSize[0]));
+		sizeInfo.put("height", Integer.valueOf(textSize[1]));
+		
+		return sizeInfo;
+	}
 	
 	@Kroll.getProperty @Kroll.method
 	public String getText() {

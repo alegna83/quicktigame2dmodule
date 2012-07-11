@@ -27,9 +27,14 @@
 // 
 package com.googlecode.quicktigame2d.proxy;
 
+import java.util.HashMap;
+
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollProxy;
 import org.appcelerator.kroll.annotations.Kroll;
+import org.appcelerator.titanium.util.TiConvert;
+
+import android.util.Log;
 
 import com.googlecode.quicktigame2d.QuickTiGame2dTransform;
 import com.googlecode.quicktigame2d.Quicktigame2dModule;
@@ -37,6 +42,8 @@ import com.googlecode.quicktigame2d.Quicktigame2dModule;
 @Kroll.proxy(creatableInModule=Quicktigame2dModule.class)
 public class TransformProxy extends KrollProxy {
 	protected QuickTiGame2dTransform transform;
+	protected HashMap<String, Object> bezierConfigCache = null;
+	
 	public TransformProxy() {
 		transform = new QuickTiGame2dTransform();
 	}
@@ -116,6 +123,14 @@ public class TransformProxy extends KrollProxy {
     	
     	if (options.containsKey("autoreverse")) {
     		setAutoreverse(options.getBoolean("autoreverse"));
+    	}
+    	
+    	if (options.containsKey("bezier")) {
+    		setBezier(options.getBoolean("bezier"));
+    	}
+    	
+    	if (options.containsKey("bezierConfig")) {
+    		setBezierConfig(options.getKrollDict("bezierConfig"));
     	}
     }
 
@@ -417,6 +432,60 @@ public class TransformProxy extends KrollProxy {
 		transform.setAutoreverse(enabled);
 	}
 
+	@Kroll.getProperty @Kroll.method
+	public boolean getBezier() {
+		return transform.isUseBezier();
+	}
+	
+	@Kroll.setProperty @Kroll.method
+	public void setBezier(boolean enabled) {
+		transform.setUseBezier(enabled);
+	}
+
+	@Kroll.setProperty @Kroll.method
+	public void setBezierConfig(@SuppressWarnings("rawtypes") HashMap info) {
+		float cx1 = 0;
+		float cy1 = 0;
+		float cx2 = 0;
+		float cy2 = 0;
+		if (info.containsKey("cx1")) {
+			cx1 = (float)TiConvert.toDouble(info.get("cx1"));
+		} else {
+			Log.w(Quicktigame2dModule.LOG_TAG, "Transform.bezierConfig cx1 is missing, assume value equals 0.");
+		}
+		if (info.containsKey("cy1")) {
+			cy1 = (float)TiConvert.toDouble(info.get("cy1"));
+		} else {
+			Log.w(Quicktigame2dModule.LOG_TAG, "Transform.bezierConfig cy1 is missing, assume value equals 0.");
+		}
+		if (info.containsKey("cx2")) {
+			cx2 = (float)TiConvert.toDouble(info.get("cx2"));
+		} else {
+			Log.w(Quicktigame2dModule.LOG_TAG, "Transform.bezierConfig cx2 is missing, assume value equals 0.");
+		}
+		if (info.containsKey("cy2")) {
+			cy2 = (float)TiConvert.toDouble(info.get("cy2"));
+		} else {
+			Log.w(Quicktigame2dModule.LOG_TAG, "Transform.bezierConfig cy2 is missing, assume value equals 0.");
+		}
+		
+		transform.updateBezierCurvePoint(cx1, cy1, cx2, cy2);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	@Kroll.getProperty @Kroll.method
+	public HashMap getBezierConfig() {
+		if (bezierConfigCache == null) {
+			bezierConfigCache = new HashMap<String, Object>();
+		}
+		bezierConfigCache.put("cx1" , transform.getBezierCurvePoint1_X());
+		bezierConfigCache.put("cy1" , transform.getBezierCurvePoint1_Y());
+		bezierConfigCache.put("cx2" , transform.getBezierCurvePoint2_X());
+		bezierConfigCache.put("cy2" , transform.getBezierCurvePoint2_Y());
+		
+		return bezierConfigCache;
+	}
+	
 	@Kroll.getProperty @Kroll.method
 	public float getLookAt_centerX() {
 		if (transform.getRotate_centerX() == null) return 0.0f;

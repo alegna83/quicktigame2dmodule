@@ -37,13 +37,14 @@
 - (float)tileCoordEndY:(QuickTiGame2dMapTile*)tile;
 - (void)createQuadBuffer;
 - (void)updateQuad:(NSInteger)index tile:(QuickTiGame2dMapTile*)cctile;
+- (void)addTileToArray:(QuickTiGame2dMapTile*)tile array:(NSMutableArray*)array;
 @end
 
 @implementation QuickTiGame2dMapTile
 @synthesize gid, red, green, blue, alpha, flip, width, height;
 @synthesize atlasX, atlasY, firstgid, margin, border, atlasWidth, atlasHeight;
 @synthesize offsetX, offsetY, initialX, initialY, positionFixed;
-@synthesize image;
+@synthesize image, index;
 
 -(id)init {
     self = [super init];
@@ -66,6 +67,7 @@
         initialX = 0;
         initialY = 0;
         positionFixed = FALSE;
+        index = 0;
     }
     return self;
 }
@@ -342,6 +344,7 @@
 		QuickTiGame2dMapTile* tile = [[QuickTiGame2dMapTile alloc] init];
         
         tile.alpha = 0;
+        tile.index = i;
         
         [tiles addObject:tile];
         
@@ -592,8 +595,63 @@
     return TRUE;
 }
 
+-(void)addTileToArray:(QuickTiGame2dMapTile*)tile array:(NSMutableArray*)array {
+    if (tile == nil) return;
+    
+    [array addObject:tile];
+}
+
+/*
+ * Get tiles from position of the screen
+ */
+-(NSArray*)getTilesAtPosition:(NSInteger)sx sy:(NSInteger)sy {
+
+    NSMutableArray* ptiles = [[[NSMutableArray alloc] init] autorelease];
+
+    NSInteger posX = sx - x;
+    NSInteger posY = sy - y;
+    
+    float tiltStepX = (tileWidth  * tileTiltFactorX);
+    float tiltStepY = (tileHeight * tileTiltFactorY);
+    
+    if (orientation == MAP_ORIENTATION_ISOMETRIC) {
+        
+        //
+        // poor implementation but this is enough this time
+        //
+        NSInteger localX = ((int)(posX / tiltStepX)) * tiltStepX;
+        NSInteger localY = ((int)(posY / tiltStepY)) * tiltStepY - tiltStepY;
+        
+        float a = localX / tileTiltFactorX / tileWidth;
+        float b = localY / tileTiltFactorY / tileHeight;
+        
+        int indexX = (int)floor((a + b) / 2);
+        int indexY = (int)floor(indexX - a);
+        
+        [self addTileToArray:[self getTile:(indexX + (tileCountX * indexY))] array:ptiles];
+        
+        //
+        // Add tiles around for convenience because tiles can be overwrapped
+        //
+        [self addTileToArray:[self getTile:((indexX + 1) + (tileCountX * indexY))] array:ptiles];
+        [self addTileToArray:[self getTile:(indexX + (tileCountX * (indexY + 1)))] array:ptiles];
+        [self addTileToArray:[self getTile:(indexX + (tileCountX * (indexY - 1)))] array:ptiles];
+        [self addTileToArray:[self getTile:((indexX - 1) + (tileCountX * indexY))] array:ptiles];
+        
+    } else if (orientation == MAP_ORIENTATION_HEXAGONAL) {
+        
+    } else {
+        int indexX = posX / tiltStepX;
+        int indexY = posY / tiltStepY;
+        
+        [ptiles addObject:[self getTile:(indexX + (tileCountX * indexY))]];
+    }
+    
+    return ptiles;
+}
+
 -(QuickTiGame2dMapTile*)getTile:(NSInteger)index {
-    if (index >= [tiles count]) return nil;
+    if (index < 0 || index >= [tiles count]) return nil;
     
     return [tiles objectAtIndex:index];
 }

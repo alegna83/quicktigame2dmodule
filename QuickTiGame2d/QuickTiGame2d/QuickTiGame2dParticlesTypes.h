@@ -91,6 +91,8 @@ typedef struct {
     BOOL  positionFixed;
     float initialX;
     float initialY;
+    
+    NSInteger index;
 }
 @property (readwrite, copy) NSString* image;
 @property (readwrite) NSInteger firstgid;
@@ -113,6 +115,7 @@ typedef struct {
 @property (readwrite) BOOL  positionFixed;
 @property (readwrite) float initialX;
 @property (readwrite) float initialY;
+@property (readwrite) NSInteger index;
 
 -(void)cc:(QuickTiGame2dMapTile*)other;
 @end

@@ -31,6 +31,8 @@ game.color(0, 0, 0);
 
 game.debug = true;
 
+var shapes = new Array();
+
 // Create game scene
 var scene = quicktigame2d.createScene();
 
@@ -70,7 +72,6 @@ function degreeToRadians(x) {
 var redBodyRef, blueBodyRef, floorRef, leftWallRef;
 
 // Onload event is called when the game is loaded.
-// The game.screen.width and game.screen.height are not yet set until this onload event.
 game.addEventListener('onload', function(e) {
                       // Your game screen size is set here if you did not specifiy game width and height using screen property.
                       // Note: game.size.width and height may be changed due to the parent layout so check them here.

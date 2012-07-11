@@ -614,6 +614,10 @@
     animation.interval = interval;
     animation.loop     = loop;
 
+    if ([frames count] > 0) {
+        animation.start = [[frames objectAtIndex:0] intValue];
+    }
+    
     [animation initializeIndividualFrames];
     for (int i = 0; i < [frames count]; i++) {
         [animation setFrame:i withValue:[[frames objectAtIndex:i] intValue]];
@@ -937,6 +941,8 @@
 
     if (transform.completed) return;
     
+    transform.locked = isChild;
+
     [transform apply];
     
     if (isChild && relativeToTransformParent) {

@@ -378,4 +378,12 @@ public class GameView extends TiUIView implements OnLifecycleEvent {
 			}
 		});
 	}
+	
+	public void setOpaque(boolean opaque) {
+		getGameView().setOpaqueBackground(opaque);
+	}
+
+	public boolean isOpaque() {
+		return getGameView().isOpaqueBackground();
+	}
 }

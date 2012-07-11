@@ -39,6 +39,25 @@
     return [UIFont systemFontSize];
 }
 
+-(CGSize)sizeWithText:(NSString*)value {
+    UIFont* font = [UIFont systemFontOfSize:[UIFont systemFontSize]];
+    
+    if ([fontFamily length] > 0) {
+        NSInteger size = fontSize > 0 ? fontSize : [UIFont systemFontSize];
+        font = [UIFont fontWithName:fontFamily size:size];
+    } else if (fontSize > 0) {
+        font = [UIFont systemFontOfSize:fontSize];
+    }
+    
+    CGSize textSize = CGSizeMake(0, 0);
+    
+    if ([text length] != 0) {
+        textSize = [text sizeWithFont:font]; 
+    }
+    
+    return textSize;
+}
+
 -(void)loadTextData {
     UIFont* font = [UIFont systemFontOfSize:[UIFont systemFontSize]];
     

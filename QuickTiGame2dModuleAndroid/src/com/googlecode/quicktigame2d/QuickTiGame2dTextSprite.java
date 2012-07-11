@@ -62,6 +62,42 @@ public class QuickTiGame2dTextSprite extends QuickTiGame2dSprite {
 		color(0, 0, 0);
 	}
 	
+	public int[] sizeWithText(String value) {
+		TextPaint forePaint = new TextPaint();
+		
+    	if (fontFamily.length() == 0) {
+    		if (isBold && isItalic) {
+    			forePaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD_ITALIC));
+    		} else if (isBold) {
+    			forePaint.setTypeface(Typeface.DEFAULT_BOLD);
+    		}
+    	} else {
+    		Typeface typeface = TiUIHelper.toTypeface(view.getContext(), fontFamily);
+    		
+    		if (isBold && isItalic) {
+    			forePaint.setTypeface(Typeface.create(typeface, Typeface.BOLD_ITALIC));
+    		} else if (isBold) {
+    			forePaint.setTypeface(Typeface.create(typeface, Typeface.BOLD));
+    		} else {
+    			forePaint.setTypeface(typeface);
+    		}
+    	}
+    	
+    	if (fontSize > 0) forePaint.setTextSize(fontSize);
+
+    	int[] textSize = new int[2];
+    	
+    	if (text.length() != 0) {
+    		textSize[0]  = (int)Math.ceil(forePaint.measureText(value));
+    	}
+    	
+    	StaticLayout wrapLayout = new StaticLayout(value, forePaint, textSize[0], textAlign, 1, 1, false);
+    	textSize[0] = wrapLayout.getWidth();
+    	textSize[1] = wrapLayout.getHeight();
+    	
+		return textSize;
+	}
+	
 	private void loadTextData(GL10 gl) {
 		if (view == null) return;
 		

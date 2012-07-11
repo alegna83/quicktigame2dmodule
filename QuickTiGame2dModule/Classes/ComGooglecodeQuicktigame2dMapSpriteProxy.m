@@ -28,6 +28,11 @@
 #import "ComGooglecodeQuicktigame2dMapSpriteProxy.h"
 #import "TiUtils.h"
 
+@interface ComGooglecodeQuicktigame2dMapSpriteProxy (PrivateMethods) {    
+}
+-(void)updateTileInfoProxyCache:(NSMutableDictionary*)dic tile:(QuickTiGame2dMapTile*)tile;
+@end
+
 @implementation ComGooglecodeQuicktigame2dMapSpriteProxy
 
 - (id)init {
@@ -40,12 +45,14 @@
         sprite = [[QuickTiGame2dMapSprite alloc] init];
         
         tileInfoCache = [[NSMutableDictionary alloc] init];
+        tilesInfoCache = [[NSMutableDictionary alloc] init];
     }
     return self;
 }
 
 - (void)dealloc {
     [tileInfoCache release];
+    [tilesInfoCache release];
     [super dealloc];
 }
 
@@ -65,6 +72,46 @@
 
 #pragma Public APIs
 
+-(id)getTilesAtPosition:(id)args {
+    NSInteger sx = [[args objectAtIndex:0] intValue]; 
+    NSInteger sy = [[args objectAtIndex:1] intValue];
+    
+    QuickTiGame2dMapSprite* mapSprite = (QuickTiGame2dMapSprite*)sprite;
+    NSArray* ptiles = [mapSprite getTilesAtPosition:sx sy:sy];
+    
+    [tilesInfoCache removeAllObjects];
+    
+    for (int i = 0; i < [ptiles count]; i++) {
+        QuickTiGame2dMapTile* tile = [ptiles objectAtIndex:i];
+        
+        NSMutableDictionary* tileInfo = [[NSMutableDictionary alloc] init];
+        [self updateTileInfoProxyCache:tileInfo tile:tile];
+        [tilesInfoCache setValue:tileInfo forKey:[NSString stringWithFormat:@"%d", i]];
+        [tileInfo release];
+    }
+    
+    return tilesInfoCache;
+}
+
+-(void)updateTileInfoProxyCache:(NSMutableDictionary*)dic tile:(QuickTiGame2dMapTile*)tile {
+    QuickTiGame2dMapSprite* mapSprite = (QuickTiGame2dMapSprite*)sprite;
+    
+    [dic setValue:NUMINT(tile.index)    forKey:@"index"];
+    [dic setValue:NUMINT(tile.gid)      forKey:@"gid"];
+    [dic setValue:NUMFLOAT(tile.red)    forKey:@"red"];
+    [dic setValue:NUMFLOAT(tile.green)  forKey:@"green"];
+    [dic setValue:NUMFLOAT(tile.blue)   forKey:@"blue"];
+    [dic setValue:NUMFLOAT(tile.alpha)  forKey:@"alpha"];
+    [dic setValue:NUMBOOL(tile.flip)    forKey:@"flip"];
+    [dic setValue:NUMFLOAT(mapSprite.x + tile.initialX + tile.offsetX)  forKey:@"screenX"];
+    [dic setValue:NUMFLOAT(mapSprite.y + tile.initialY + tile.offsetY)  forKey:@"screenY"];
+    
+    [dic setValue:NUMFLOAT(tile.width  > 0 ? tile.width  : mapSprite.width)   forKey:@"width"];
+    [dic setValue:NUMFLOAT(tile.height > 0 ? tile.height : mapSprite.height)  forKey:@"height"];
+    [dic setValue:NUMFLOAT(tile.margin)  forKey:@"margin"];
+    [dic setValue:NUMFLOAT(tile.border)  forKey:@"border"];
+}
+
 -(id)getTile:(id)args {
     ENSURE_SINGLE_ARG(args, NSNumber);
     NSInteger index = [args intValue];
@@ -75,22 +122,11 @@
         return nil;
     }
     
-    QuickTiGame2dMapTile* tile = [mapSprite getTile:index];
+    QuickTiGame2dMapTile*  tile = [mapSprite getTile:index];
     
-    [tileInfoCache setValue:NUMINT(index)         forKey:@"index"];
-    [tileInfoCache setValue:NUMINT(tile.gid)      forKey:@"gid"];
-    [tileInfoCache setValue:NUMFLOAT(tile.red)    forKey:@"red"];
-    [tileInfoCache setValue:NUMFLOAT(tile.green)  forKey:@"green"];
-    [tileInfoCache setValue:NUMFLOAT(tile.blue)   forKey:@"blue"];
-    [tileInfoCache setValue:NUMFLOAT(tile.alpha)  forKey:@"alpha"];
-    [tileInfoCache setValue:NUMBOOL(tile.flip)    forKey:@"flip"];
-    [tileInfoCache setValue:NUMFLOAT(mapSprite.x + tile.initialX + tile.offsetX)  forKey:@"screenX"];
-    [tileInfoCache setValue:NUMFLOAT(mapSprite.y + tile.initialY + tile.offsetY)  forKey:@"screenY"];
-    
-    [tileInfoCache setValue:NUMFLOAT(tile.width  > 0 ? tile.width  : mapSprite.width)   forKey:@"width"];
-    [tileInfoCache setValue:NUMFLOAT(tile.height > 0 ? tile.height : mapSprite.height)  forKey:@"height"];
-    [tileInfoCache setValue:NUMFLOAT(tile.margin)  forKey:@"margin"];
-    [tileInfoCache setValue:NUMFLOAT(tile.border)  forKey:@"border"];
+    if (tile != nil) {
+        [self updateTileInfoProxyCache:tileInfoCache tile:tile];
+    }
     
     return tileInfoCache;
 }
@@ -110,6 +146,8 @@
     }
     
     QuickTiGame2dMapTile* tile = [((QuickTiGame2dMapSprite*)sprite) getTile:index];
+    
+    if (tile == nil) return NUMBOOL(FALSE);
     
     if (gid   >= 0) tile.gid   = gid;
     if (red   >= 0) tile.red   = red;

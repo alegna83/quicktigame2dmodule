@@ -103,15 +103,16 @@
     BOOL reversing;
     
     BOOL completed;
+    BOOL locked;
+
+    // Bezier
+    BOOL useBezier;
+    NSNumber* bezierCurvePoint1_X;
+    NSNumber* bezierCurvePoint1_Y;
     
-    //besier
-    BOOL bezier;
-    NSNumber* bc1x;
-    NSNumber* bc1y;
-    
-    NSNumber* bc2x;
-    NSNumber* bc2y;
-    
+    NSNumber* bezierCurvePoint2_X;
+    NSNumber* bezierCurvePoint2_Y;
+
 }
 @property (readwrite, retain) NSNumber* x;
 @property (readwrite, retain) NSNumber* y;
@@ -131,6 +132,11 @@
 @property (readwrite, retain) NSNumber* green;
 @property (readwrite, retain) NSNumber* blue;
 @property (readwrite, retain) NSNumber* alpha;
+
+@property (readwrite, retain) NSNumber* bezierCurvePoint1_X;
+@property (readwrite, retain) NSNumber* bezierCurvePoint1_Y;
+@property (readwrite, retain) NSNumber* bezierCurvePoint2_X;
+@property (readwrite, retain) NSNumber* bezierCurvePoint2_Y;
 
 @property (readwrite) float current_x;
 @property (readwrite) float current_y;
@@ -176,13 +182,9 @@
 @property (readwrite) BOOL autoreverse;
 @property (readwrite) BOOL reversing;
 @property (readwrite) BOOL completed;
-@property (readwrite) BOOL bezier;
+@property (readwrite) BOOL locked;
 
-@property (readwrite, retain) NSNumber* bc1x;
-@property (readwrite, retain) NSNumber* bc1y;
-@property (readwrite, retain) NSNumber* bc2x;
-@property (readwrite, retain) NSNumber* bc2y;
-
+@property (readwrite) BOOL useBezier;
 
 -(void)start;
 -(void)restart;
@@ -198,8 +200,7 @@
 -(void)scale:(float)scale;
 -(void)scale:(float)_scaleX scaleY:(float)_scaleY;
 -(void)move:(float)_x y:(float)_y;
--(void)addBc1:(float)_x y:(float)_y;
--(void)addBc2:(float)_x y:(float)_y;
+-(void)updateBezierCurvePoint:(float)_cx1 cy1:(float)_cy1 cx2:(float)_cx2 cy2:(float)_cy2;
 
 -(BOOL)hasStarted;
 -(BOOL)hasExpired;
@@ -207,6 +208,9 @@
 -(NSInteger)elapsed;
 
 -(float)current:(float)_from to:(float)_to;
+-(float)currentBezier_X:(float)_from to:(float)_to;
+-(float)currentBezier_Y:(float)_from to:(float)_to;
+
 -(float)ease:(float)_elapsed duration:(float)_duration;
 
 -(float)easingLinear:(float)_elapsed duration:(float)_duration;

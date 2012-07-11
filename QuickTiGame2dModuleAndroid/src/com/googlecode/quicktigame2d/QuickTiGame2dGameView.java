@@ -45,6 +45,7 @@ import javax.microedition.khronos.opengles.GL11ExtensionPack;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.PixelFormat;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.GLU;
@@ -135,10 +136,11 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	private QuickTiGame2dScene previousScene = null;
 	private boolean resetPreviousScene = false;
 	
+	private boolean isRendererSet    = false;
+	private boolean opaqueBackground = true;
+	
 	public QuickTiGame2dGameView(Context context) {
 		super(context);
-		
-		setRenderer(this);
 		
 		color[0] = 0;
 		color[1] = 0;
@@ -200,6 +202,12 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	}
 	
 	public void onGainedFocus() {
+		
+		if (!isRendererSet) {
+			setRenderer(this);
+			isRendererSet = true;
+		}
+		
 		focused = true;
 		synchronized (listeners) {
 			for (GameViewEventListener listener : listeners) {
@@ -1159,6 +1167,22 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	@Override
 	public void onDestroy(Activity arg0) {
 
+	}
+
+	public boolean isOpaqueBackground() {
+		return opaqueBackground;
+	}
+
+	public void setOpaqueBackground(boolean opaqueBackground) {
+		this.opaqueBackground = opaqueBackground;
+		
+		if (opaqueBackground) {
+			getHolder().setFormat(PixelFormat.RGB_565);
+		} else {
+			setZOrderOnTop(true);
+			setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+			getHolder().setFormat(PixelFormat.TRANSLUCENT);
+		}
 	}
 
 }
