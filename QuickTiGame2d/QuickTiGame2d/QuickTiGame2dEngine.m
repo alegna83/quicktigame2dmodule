@@ -779,10 +779,6 @@ static GLint  textureFilter  = GL_NEAREST;
     return orientation;
 }
 
--(void)alpha:(float)alpha {
-    color[3] = alpha;
-}
-
 -(void)color:(float)red green:(float)green blue:(float)blue {
     [self color:red green:green blue:blue alpha:color[3]];
 }
@@ -935,6 +931,14 @@ static GLint  textureFilter  = GL_NEAREST;
 
 - (void)removeHUD:(QuickTiGame2dSprite*)sprite {
     [hudScene removeSprite:sprite];
+}
+
+-(void)setAlpha:(float)alpha {
+    color[3] = alpha;
+}
+
+-(float)alpha {
+    return color[3];
 }
 
 @end

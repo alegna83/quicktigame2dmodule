@@ -50,6 +50,7 @@
 @property (nonatomic, readwrite, assign) id timerType;
 @property (nonatomic, readwrite, assign) id opaque;
 @property (nonatomic, readwrite, assign) id usePerspective;
+@property (nonatomic, readwrite, assign) id alpha;
 
 - (void)onNotification:(NSNotification*)notification;
 
@@ -72,7 +73,6 @@
 - (void)startCurrentScene:(id)args;
 
 - (void)color:(id)args;
-- (void)alpha:(id)args;
 
 - (void)moveCamera:(id)args;
 - (void)resetCamera:(id)args;

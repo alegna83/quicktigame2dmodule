@@ -45,14 +45,12 @@
         sprite = [[QuickTiGame2dMapSprite alloc] init];
         
         tileInfoCache = [[NSMutableDictionary alloc] init];
-        tilesInfoCache = [[NSMutableDictionary alloc] init];
     }
     return self;
 }
 
 - (void)dealloc {
     [tileInfoCache release];
-    [tilesInfoCache release];
     [super dealloc];
 }
 
@@ -72,25 +70,20 @@
 
 #pragma Public APIs
 
--(id)getTilesAtPosition:(id)args {
-    NSInteger sx = [[args objectAtIndex:0] intValue]; 
-    NSInteger sy = [[args objectAtIndex:1] intValue];
+-(id)getTileAtPosition:(id)args {
+    float sx = [[args objectAtIndex:0] floatValue]; 
+    float sy = [[args objectAtIndex:1] floatValue];
     
     QuickTiGame2dMapSprite* mapSprite = (QuickTiGame2dMapSprite*)sprite;
-    NSArray* ptiles = [mapSprite getTilesAtPosition:sx sy:sy];
+    QuickTiGame2dMapTile* tile = [mapSprite getTileAtPosition:sx sy:sy];
     
-    [tilesInfoCache removeAllObjects];
-    
-    for (int i = 0; i < [ptiles count]; i++) {
-        QuickTiGame2dMapTile* tile = [ptiles objectAtIndex:i];
-        
-        NSMutableDictionary* tileInfo = [[NSMutableDictionary alloc] init];
-        [self updateTileInfoProxyCache:tileInfo tile:tile];
-        [tilesInfoCache setValue:tileInfo forKey:[NSString stringWithFormat:@"%d", i]];
-        [tileInfo release];
+    if (tile != nil) {
+        [self updateTileInfoProxyCache:tileInfoCache tile:tile];
+    } else {
+        return nil;
     }
     
-    return tilesInfoCache;
+    return tileInfoCache;
 }
 
 -(void)updateTileInfoProxyCache:(NSMutableDictionary*)dic tile:(QuickTiGame2dMapTile*)tile {
@@ -126,6 +119,8 @@
     
     if (tile != nil) {
         [self updateTileInfoProxyCache:tileInfoCache tile:tile];
+    } else {
+        return nil;
     }
     
     return tileInfoCache;

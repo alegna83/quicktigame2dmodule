@@ -67,6 +67,7 @@
 @property (readwrite) NSInteger onFpsInterval;
 @property (readwrite) NSInteger timerType;
 @property (readwrite) BOOL usePerspective;
+@property (readwrite) float alpha;
 
 - (void)attachContext;
 - (void)detachContext;
@@ -84,7 +85,6 @@
 -(void)resetCamera;
 -(void)moveCamera:(QuickTiGame2dTransform*) transform;
 
--(void)alpha:(float)alpha;
 -(void)color:(float)red green:(float)green blue:(float)blue;
 -(void)color:(float)red green:(float)green blue:(float)blue alpha:(float)alpha;
 

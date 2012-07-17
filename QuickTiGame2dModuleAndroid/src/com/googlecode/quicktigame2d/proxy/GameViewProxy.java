@@ -150,11 +150,6 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 	}
 	
 	@Kroll.method
-	public void alpha(float alpha) {
-		getView().alpha(alpha);
-	}
-
-	@Kroll.method
 	public SceneProxy pushScene(SceneProxy scene) {
 		previousScene = topScene();
 		
@@ -246,6 +241,16 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 	@Kroll.method
 	public void registerForMultiTouch() {
 		getView().registerForMultiTouch();
+	}
+	
+	@Kroll.setProperty @Kroll.method
+	public void setAlpha(float alpha) {
+		getView().setAlpha(alpha);
+	}
+
+	@Kroll.getProperty @Kroll.method
+	public float getAlpha() {
+		return getView().getAlpha();
 	}
 
 	@Kroll.setProperty @Kroll.method

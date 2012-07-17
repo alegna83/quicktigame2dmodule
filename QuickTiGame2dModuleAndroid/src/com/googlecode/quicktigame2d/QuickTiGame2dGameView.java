@@ -797,8 +797,12 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 		color(red, green, blue, color[3]);
 	}
 	
-	public void alpha(float alpha) {
+	public void setAlpha(float alpha) {
 		color[3] = alpha;
+	}
+	
+	public float getAlpha() {
+		return color[3];
 	}
 
 	public void setDebug(boolean enabled) {

@@ -116,6 +116,7 @@ typedef struct CameraInfo {
 @property (readwrite) BOOL enableOnFpsEvent;
 @property (readwrite) NSInteger onFpsInterval;
 @property (readwrite) BOOL usePerspective;
+@property (readwrite) float alpha;
 
 - (void)drawFrame;
 - (void)onLoad:(GLint)framebufferWidth height:(GLint)framebufferHeight;
@@ -156,7 +157,6 @@ typedef struct CameraInfo {
 + (GLenum)correctionHint;
 + (void)setCorrectionHint:(GLenum)hint;
 
--(void)alpha:(float)alpha;
 -(void)color:(float)red green:(float)green blue:(float)blue;
 -(void)color:(float)red green:(float)green blue:(float)blue alpha:(float)alpha;
 

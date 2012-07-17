@@ -313,8 +313,12 @@
     [QuickTiGame2dEngine setDebug:enable];
 }
 
--(void)alpha:(float)alpha {
-    [game alpha:alpha];
+-(void)setAlpha:(float)alpha {
+    game.alpha = alpha;
+}
+
+-(float)alpha {
+    return game.alpha;
 }
 
 -(void)color:(float)red green:(float)green blue:(float)blue {

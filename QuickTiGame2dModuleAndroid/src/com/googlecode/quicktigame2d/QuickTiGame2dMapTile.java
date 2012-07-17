@@ -29,6 +29,7 @@ package com.googlecode.quicktigame2d;
 
 public class QuickTiGame2dMapTile {
     public String image;
+    public int   index;
     public int   firstgid;
     public int   gid;
     public float red;
@@ -52,8 +53,14 @@ public class QuickTiGame2dMapTile {
     public float initialX;
     public float initialY;
     
+    boolean  isOverwrap;
+    float overwrapWidth;
+    float overwrapHeight;
+    boolean  suppressUpdate;
+    
     public QuickTiGame2dMapTile() {
         gid   = 0;
+        index = 0;
         red   = 1;
         green = 1;
         blue  = 1;
@@ -72,10 +79,15 @@ public class QuickTiGame2dMapTile {
         initialY = 0;
         positionFixed = false;
         image = null;
+        isOverwrap = false;
+        overwrapWidth  = 0;
+        overwrapHeight = 0;
+        suppressUpdate = false;
     }
     
     public void cc(QuickTiGame2dMapTile other) {
         gid   = other.gid;
+        index = other.index;
         red   = other.red;
         green = other.green;
         blue  = other.blue;
@@ -93,5 +105,10 @@ public class QuickTiGame2dMapTile {
         initialX = other.initialX;
         initialY = other.initialY;
         positionFixed = other.positionFixed;
+        isOverwrap = other.isOverwrap;
+        overwrapWidth = other.overwrapWidth;
+        overwrapHeight = other.overwrapHeight;
+        suppressUpdate = other.suppressUpdate;
     }
+    
 }

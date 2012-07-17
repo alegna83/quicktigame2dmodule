@@ -30,7 +30,6 @@
 
 @interface ComGooglecodeQuicktigame2dMapSpriteProxy : ComGooglecodeQuicktigame2dSpriteProxy {
     NSMutableDictionary* tileInfoCache;
-    NSMutableDictionary* tilesInfoCache;
 }
 @property (nonatomic, readwrite, assign) id border;
 @property (nonatomic, readwrite, assign) id margin;
@@ -46,7 +45,7 @@
 @property (nonatomic, readonly,  assign) id tileTiltFactorY;
 @property (nonatomic, readwrite, assign) id tilesets;
 
--(id)getTilesAtPosition:(id)args;
+-(id)getTileAtPosition:(id)args;
 -(id)getTile:(id)args;
 -(id)updateTile:(id)args;
 -(id)updateTiles:(id)args;

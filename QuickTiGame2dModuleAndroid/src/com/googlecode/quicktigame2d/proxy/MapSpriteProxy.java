@@ -80,14 +80,8 @@ public class MapSpriteProxy extends SpriteProxy {
     	}
     }
 
-	@SuppressWarnings("rawtypes")
-	@Kroll.method
-	public HashMap getTile(int index) {
-		HashMap<String, Object> info = new HashMap<String, Object>();
-		
-		QuickTiGame2dMapTile tile = getMapSprite().getTile(index);
-		
-		info.put("index", Integer.valueOf(index));
+	private void updateTileInfoProxyCache(HashMap<String, Object> info, QuickTiGame2dMapTile tile) {
+		info.put("index", Integer.valueOf(tile.index));
 		info.put("gid",   Integer.valueOf(tile.gid));
 		info.put("red",   Double.valueOf(tile.red));
 		info.put("green", Double.valueOf(tile.green));
@@ -101,7 +95,32 @@ public class MapSpriteProxy extends SpriteProxy {
 		info.put("height",   Double.valueOf(tile.height > 0 ? tile.height : getMapSprite().getHeight()));
 		info.put("margin",   Double.valueOf(tile.margin));
 		info.put("border",   Double.valueOf(tile.border));
+	}
+	
+	@SuppressWarnings("rawtypes")
+	@Kroll.method
+	public HashMap getTileAtPosition(float sx, float sy) {
+		HashMap<String, Object> info = new HashMap<String, Object>();
 		
+		QuickTiGame2dMapTile tile = getMapSprite().getTileAtPosition(sx, sy);
+		
+		if (tile == null) return null;
+		
+		updateTileInfoProxyCache(info, tile);
+		
+		return info;
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Kroll.method
+	public HashMap getTile(int index) {
+		HashMap<String, Object> info = new HashMap<String, Object>();
+		
+		QuickTiGame2dMapTile tile = getMapSprite().getTile(index);
+		
+		if (tile == null) return null;
+		
+		updateTileInfoProxyCache(info, tile);
 		
 		return info;
 	}
@@ -139,6 +158,8 @@ public class MapSpriteProxy extends SpriteProxy {
 	    }
 	    
 	    QuickTiGame2dMapTile tile = getMapSprite().getTile(index);
+	    
+	    if (tile == null) return false;
 	    
 	    if (gid   >= 0) tile.gid   = gid;
 	    if (red   >= 0) tile.red   = red;

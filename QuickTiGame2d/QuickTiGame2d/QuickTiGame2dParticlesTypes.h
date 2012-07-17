@@ -93,6 +93,12 @@ typedef struct {
     float initialY;
     
     NSInteger index;
+
+    BOOL  isOverwrap;
+    float overwrapWidth;
+    float overwrapHeight;
+    BOOL  suppressUpdate;
+
 }
 @property (readwrite, copy) NSString* image;
 @property (readwrite) NSInteger firstgid;
@@ -116,6 +122,10 @@ typedef struct {
 @property (readwrite) float initialX;
 @property (readwrite) float initialY;
 @property (readwrite) NSInteger index;
+@property (readwrite) BOOL  isOverwrap;
+@property (readwrite) BOOL  suppressUpdate;
+@property (readwrite) float overwrapWidth;
+@property (readwrite) float overwrapHeight;
 
 -(void)cc:(QuickTiGame2dMapTile*)other;
 @end

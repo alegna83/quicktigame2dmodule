@@ -241,7 +241,7 @@
     ENSURE_SINGLE_ARG(value, NSNumber);
     self.view.opaque = [value boolValue];
     
-    [(ComGooglecodeQuicktigame2dGameView *)self.view alpha:(self.view.opaque ? 1 : 0)];
+    ((ComGooglecodeQuicktigame2dGameView *)self.view).alpha = self.view.opaque ? 1 : 0;
 }
 
 -(id)debug {
@@ -331,9 +331,13 @@
     }
 }
 
-- (void)alpha:(id)args {
+- (void)setAlpha:(id)args {
     ENSURE_SINGLE_ARG(args, NSNumber);
-    [(ComGooglecodeQuicktigame2dGameView*)self.view alpha:[args floatValue]];
+    ((ComGooglecodeQuicktigame2dGameView*)self.view).alpha = [args floatValue];
+}
+
+- (id)alpha {
+    return NUMFLOAT(((ComGooglecodeQuicktigame2dGameView*)self.view).alpha);
 }
 
 - (id)usePerspective {

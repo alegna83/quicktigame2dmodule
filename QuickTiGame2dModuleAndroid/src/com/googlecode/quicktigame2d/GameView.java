@@ -113,8 +113,12 @@ public class GameView extends TiUIView implements OnLifecycleEvent {
 		getGameView().color(red, green, blue);
 	}
 	
-	public void alpha(float alpha) {
-		getGameView().alpha(alpha);
+	public void setAlpha(float alpha) {
+		getGameView().setAlpha(alpha);
+	}
+	
+	public float getAlpha() {
+		return getGameView().getAlpha();
 	}
 	
 	public QuickTiGame2dScene pushScene(QuickTiGame2dScene scene) {
