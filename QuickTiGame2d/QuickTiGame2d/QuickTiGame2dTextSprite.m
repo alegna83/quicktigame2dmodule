@@ -188,11 +188,13 @@
 }
 
 -(void)dealloc {
+    [labelTexture onDispose];
     [labelTexture release];
     [text release];
     
     labelTexture = nil;
     text         = nil;
+    fontFamily   = nil;
     hasTexture   = FALSE;
     
     [super dealloc];
