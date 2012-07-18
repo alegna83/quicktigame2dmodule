@@ -149,18 +149,18 @@
     NSInteger y = [TiUtils intValue:@"y" properties:args def:0];
     
     NSArray * sprites = [scene spritesAt:x y:y];
-    
-    for (int i=0; i<[sprites count]; i++) {
-        QuickTiGame2dSprite * sprite = [sprites objectAtIndex:i];
-        for (int j=0; j<[spriteStack count]; j++) {
-            ComGooglecodeQuicktigame2dSpriteProxy * spriteProxy = [spriteStack objectAtIndex:j];
-            if ([spriteProxy sprite] == sprite && sprite.alpha > 0) {
+    @synchronized(spriteStack) {
+        for (int i=0; i<[sprites count]; i++) {
+            QuickTiGame2dSprite * sprite = [sprites objectAtIndex:i];
+            for (ComGooglecodeQuicktigame2dSpriteProxy* spriteProxy in spriteStack) {
+                if ([spriteProxy sprite] == sprite && sprite.alpha > 0) {
                 //NSLog(eventName);
-                [spriteProxy fireEvent:eventName withObject:args withSource:spriteProxy];
-                break;
+                    [spriteProxy fireEvent:eventName withObject:args withSource:spriteProxy];
+                    break;
+                }
             }
+            //[sprite fireEvent:eventName];
         }
-        //[sprite fireEvent:eventName];
     }
     [sprites release];
 }
