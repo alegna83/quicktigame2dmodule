@@ -61,7 +61,7 @@
 }
 
 -(void)setText:(id)value {
-    ((QuickTiGame2dTextSprite*)sprite).text = [[TiUtils stringValue:value] copy];
+    ((QuickTiGame2dTextSprite*)sprite).text = [[[TiUtils stringValue:value] copy] autorelease];
     [(QuickTiGame2dTextSprite*)sprite reload];
 }
 
@@ -70,7 +70,7 @@
 }
 
 -(void)setFontFamily:(id)value {
-    ((QuickTiGame2dTextSprite*)sprite).fontFamily = [[TiUtils stringValue:value] copy];
+    ((QuickTiGame2dTextSprite*)sprite).fontFamily = [[[TiUtils stringValue:value] copy] autorelease];
     [(QuickTiGame2dTextSprite*)sprite reload];
 }
 
@@ -94,7 +94,7 @@
 }
 
 -(id)sizeWithText:(id)value {
-    CGSize size = [(QuickTiGame2dTextSprite*)sprite sizeWithText:[[TiUtils stringValue:value] copy]];
+    CGSize size = [(QuickTiGame2dTextSprite*)sprite sizeWithText:[[[TiUtils stringValue:value] copy] autorelease]];
     
     if (sizeInfoCache == nil) {
         sizeInfoCache = [[NSMutableDictionary alloc] init];

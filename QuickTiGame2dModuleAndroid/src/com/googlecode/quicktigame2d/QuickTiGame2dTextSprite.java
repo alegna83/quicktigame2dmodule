@@ -203,6 +203,12 @@ public class QuickTiGame2dTextSprite extends QuickTiGame2dSprite {
     	}
     	super.onDrawFrame(gl, fpsTimeElapsed);
     }
+    
+    @Override
+    public void onDispose() {
+    	QuickTiGame2dGameView.deleteGLBuffer(new int[] { labelTexture.getTextureId() });
+    	super.onDispose();
+    }
 
     @Override
 	public QuickTiGame2dTexture getTexture() {

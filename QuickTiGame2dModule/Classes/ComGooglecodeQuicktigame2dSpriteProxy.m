@@ -100,7 +100,7 @@
 }
 
 -(void)setImage:(id)value {
-    sprite.image = [[TiUtils stringValue:value] copy];
+    sprite.image = [[[TiUtils stringValue:value] copy] autorelease];
     [sprite updateImageSize];
 }
 
@@ -109,7 +109,7 @@
 }
 
 -(void)setTag:(id)value {
-    sprite.tag = [[TiUtils stringValue:value] copy];
+    sprite.tag = [[[TiUtils stringValue:value] copy] autorelease];
 }
 
 -(id)tag {
