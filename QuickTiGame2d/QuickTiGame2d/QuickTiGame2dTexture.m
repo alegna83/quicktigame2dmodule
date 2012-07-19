@@ -141,17 +141,25 @@
         glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG,
                                width, height, 0, dataLength, data);
     } else if (hasAlpha) {
-        GLubyte* holder = (GLubyte*)malloc(sizeof(GLubyte) * glWidth * glHeight * 4);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, glWidth, glHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, holder);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 
+        if (isPowerOfTwo(width) && isPowerOfTwo(height)) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        } else {
+            GLubyte* holder = (GLubyte*)malloc(sizeof(GLubyte) * glWidth * glHeight * 4);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, glWidth, glHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, holder);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 
                         0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        free(holder);
+            free(holder);
+        }
     } else {
-        GLubyte* holder = (GLubyte*)malloc(sizeof(GLubyte) * glWidth * glHeight * 3);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, glWidth, glHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, holder);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 
-                        0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
-        free(holder);
+        if (isPowerOfTwo(width) && isPowerOfTwo(height)) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        } else {
+            GLubyte* holder = (GLubyte*)malloc(sizeof(GLubyte) * glWidth * glHeight * 3);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, glWidth, glHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, holder);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 
+                            0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+            free(holder);
+        }
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);

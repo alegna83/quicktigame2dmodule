@@ -109,13 +109,18 @@ public class QuickTiGame2dTexture {
 			return;
 		}
 		
-		final Bitmap holder = Bitmap.createBitmap(glWidth, glHeight, Bitmap.Config.ARGB_8888);
-		GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, holder, 0);
-		holder.recycle();
-
 		try {
-			GLHelper.texSubImage2D(gl, GL10.GL_TEXTURE_2D, 0, 
-					0, 0, bitmap, GL10.GL_RGBA, GL10.GL_UNSIGNED_BYTE);             
+			if (QuickTiGame2dUtil.isPowerOfTwo(width) && QuickTiGame2dUtil.isPowerOfTwo(height)) {
+				GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmap, 0);
+			} else {
+				final Bitmap holder = Bitmap.createBitmap(glWidth, glHeight, Bitmap.Config.ARGB_8888);
+				GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, holder, 0);
+				holder.recycle();
+				
+				GLHelper.texSubImage2D(gl, GL10.GL_TEXTURE_2D, 0, 
+						0, 0, bitmap, GL10.GL_RGBA, GL10.GL_UNSIGNED_BYTE);             
+			}
+
 		} finally {
 			bitmap.recycle();
 			bitmap = null;
