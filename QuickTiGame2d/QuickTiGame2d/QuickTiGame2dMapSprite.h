@@ -55,6 +55,9 @@
     
     NSMutableArray* tilesetgids;
     NSMutableDictionary* tilesets;
+    
+    float tileOffsetX;
+    float tileOffsetY;
 }
 @property (readwrite) float tileWidth;
 @property (readwrite) float tileHeight;
@@ -65,6 +68,8 @@
 @property (readwrite) NSInteger orientation;
 @property (readwrite) float tileTiltFactorX;
 @property (readwrite) float tileTiltFactorY;
+@property (readwrite) float tileOffsetX;
+@property (readwrite) float tileOffsetY;
 
 -(void)onLoad;
 -(void)bindVertex;
@@ -76,7 +81,6 @@
 -(NSArray*)getTiles;
 -(QuickTiGame2dMapTile*)getTileAtPosition:(float)sx sy:(float)sy;
 -(QuickTiGame2dMapTile*)getTile:(NSInteger)index;
--(void)setTile:(NSInteger)index gid:(NSInteger)gid;
 -(void)setTile:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile;
 -(void)setTiles:(NSArray*)data;
 -(BOOL)removeTile:(NSInteger)index;
@@ -88,4 +92,16 @@
         count:(NSInteger)count interval:(NSInteger)interval loop:(NSInteger)loop;
 -(void)animateTile:(NSInteger)tileIndex frames:(NSArray*)frames interval:(NSInteger)interval;
 -(void)animateTile:(NSInteger)tileIndex frames:(NSArray*)frames interval:(NSInteger)interval loop:(NSInteger)loop;
+
+-(float)screenX:(QuickTiGame2dMapTile*)tile;
+-(float)screenY:(QuickTiGame2dMapTile*)tile;
+
+-(float)scaledTileWidth;
+-(float)scaledTileHeight;
+
+-(float)scaledTileWidth:(QuickTiGame2dMapTile*)tile;
+-(float)scaledTileHeight:(QuickTiGame2dMapTile*)tile;
+
+-(NSInteger)getChildTileRowCount:(QuickTiGame2dMapTile*)tile;
+-(BOOL)hasChild:(QuickTiGame2dMapTile*)tile;
 @end

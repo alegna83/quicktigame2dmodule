@@ -303,8 +303,8 @@
 }
 
 - (id)center {
-    [centerInfoCache setValue:NUMFLOAT(sprite.x + (sprite.width  * 0.5f)) forKey:@"x"];
-    [centerInfoCache setValue:NUMFLOAT(sprite.y + (sprite.height * 0.5f)) forKey:@"y"];
+    [centerInfoCache setValue:NUMFLOAT(sprite.x + (sprite.scaledWidth  * 0.5f)) forKey:@"x"];
+    [centerInfoCache setValue:NUMFLOAT(sprite.y + (sprite.scaledHeight * 0.5f)) forKey:@"y"];
     return centerInfoCache;
 }
 
@@ -313,8 +313,8 @@
     float x  = [TiUtils floatValue:@"x"  properties:value  def:0];
     float y  = [TiUtils floatValue:@"y"  properties:value  def:0];
     
-    if ([value objectForKey:@"x"] != nil) sprite.x = x - (sprite.width  * 0.5f);
-    if ([value objectForKey:@"y"] != nil) sprite.y = y - (sprite.height * 0.5f);
+    if ([value objectForKey:@"x"] != nil) sprite.x = x - (sprite.scaledWidth  * 0.5f);
+    if ([value objectForKey:@"y"] != nil) sprite.y = y - (sprite.scaledHeight * 0.5f);
 }
 
 - (id)rotationCenter {

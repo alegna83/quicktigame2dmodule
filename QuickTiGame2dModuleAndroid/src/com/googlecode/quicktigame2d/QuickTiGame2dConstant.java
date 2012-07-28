@@ -32,11 +32,6 @@ public interface QuickTiGame2dConstant {
 	int AXIS_Y = 1;
 	int AXIS_Z = 2;
 	
-	int SCENE_EVENT_UNKNOWN = 0;
-	int SCENE_EVENT_PUSH    = 1;
-	int SCENE_EVENT_POP     = 2;
-	int SCENE_EVENT_REPLACE = 3;
-	
 	String DEFAULT_ANIMATION_NAME = "default_animation";
 	String SNAPSHOT_TEXTURE_NAME  = "/quicktigame2d/@snapshot";
 

@@ -194,14 +194,14 @@ public class QuickTiGame2dTextSprite extends QuickTiGame2dSprite {
 	}
 
     @Override
-	public void onDrawFrame(GL10 gl, boolean fpsTimeElapsed) {
+	public void onDrawFrame(GL10 gl) {
     	if (shouldReload) {
     		labelTexture.onDispose(gl);
     		loadTextData(gl);
     		bindVertex(gl);
     		shouldReload = false;
     	}
-    	super.onDrawFrame(gl, fpsTimeElapsed);
+    	super.onDrawFrame(gl);
     }
     
     @Override

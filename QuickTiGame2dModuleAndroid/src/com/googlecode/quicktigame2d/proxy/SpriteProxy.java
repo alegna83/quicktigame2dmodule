@@ -401,19 +401,19 @@ public class SpriteProxy extends KrollProxy {
 	public void setCenter(@SuppressWarnings("rawtypes") HashMap info) {
 		if (info.containsKey("x")) {
 			float x = (float)TiConvert.toDouble(info.get("x"));
-			sprite.setX(x - (sprite.getWidth() * 0.5f));
+			sprite.setX(x - (sprite.getScaledWidth() * 0.5f));
 		}
 		if (info.containsKey("y")) {
 			float y = (float)TiConvert.toDouble(info.get("y"));
-			sprite.setY(y - (sprite.getHeight() * 0.5f));
+			sprite.setY(y - (sprite.getScaledHeight() * 0.5f));
 		}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	@Kroll.getProperty @Kroll.method
 	public HashMap getCenter() {
-		centerInfoCache.put("x" , sprite.getX() + (sprite.getWidth()  * 0.5));
-		centerInfoCache.put("y" , sprite.getY() + (sprite.getHeight() * 0.5));
+		centerInfoCache.put("x" , sprite.getX() + (sprite.getScaledWidth()  * 0.5));
+		centerInfoCache.put("y" , sprite.getY() + (sprite.getScaledHeight() * 0.5));
 		
 		return centerInfoCache;
 	}

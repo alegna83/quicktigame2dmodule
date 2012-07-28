@@ -96,11 +96,19 @@
     [dic setValue:NUMFLOAT(tile.blue)   forKey:@"blue"];
     [dic setValue:NUMFLOAT(tile.alpha)  forKey:@"alpha"];
     [dic setValue:NUMBOOL(tile.flip)    forKey:@"flip"];
-    [dic setValue:NUMFLOAT(mapSprite.x + tile.initialX + tile.offsetX)  forKey:@"screenX"];
-    [dic setValue:NUMFLOAT(mapSprite.y + tile.initialY + tile.offsetY)  forKey:@"screenY"];
+    [dic setValue:NUMBOOL(tile.isChild) forKey:@"isChild"];
+    [dic setValue:NUMBOOL([mapSprite hasChild:tile]) forKey:@"hasChild"];
+    [dic setValue:NUMBOOL([mapSprite getChildTileRowCount:tile]) forKey:@"rowCount"];
+    [dic setValue:NUMINT(tile.parent)   forKey:@"parent"];
+    [dic setValue:NUMFLOAT([mapSprite screenX:tile]) forKey:@"screenX"];
+    [dic setValue:NUMFLOAT([mapSprite screenY:tile]) forKey:@"screenY"];
     
-    [dic setValue:NUMFLOAT(tile.width  > 0 ? tile.width  : mapSprite.width)   forKey:@"width"];
-    [dic setValue:NUMFLOAT(tile.height > 0 ? tile.height : mapSprite.height)  forKey:@"height"];
+    [dic setValue:NUMFLOAT(tile.width  > 0 ? 
+                           [mapSprite scaledTileWidth:tile]  : [mapSprite scaledTileWidth])
+                           forKey:@"width"];
+    [dic setValue:NUMFLOAT(tile.height > 0 ? 
+                           [mapSprite scaledTileHeight:tile] : [mapSprite scaledTileHeight])
+                           forKey:@"height"];
     [dic setValue:NUMFLOAT(tile.margin)  forKey:@"margin"];
     [dic setValue:NUMFLOAT(tile.border)  forKey:@"border"];
 }
@@ -140,9 +148,12 @@
         return NUMBOOL(FALSE);
     }
     
-    QuickTiGame2dMapTile* tile = [((QuickTiGame2dMapSprite*)sprite) getTile:index];
+    QuickTiGame2dMapTile* target = [((QuickTiGame2dMapSprite*)sprite) getTile:index];
     
-    if (tile == nil) return NUMBOOL(FALSE);
+    if (target == nil) return NUMBOOL(FALSE);
+    
+    QuickTiGame2dMapTile* tile = [[QuickTiGame2dMapTile alloc] init];
+    [tile cc:target];
     
     if (gid   >= 0) tile.gid   = gid;
     if (red   >= 0) tile.red   = red;
@@ -155,6 +166,8 @@
     }
     
     [((QuickTiGame2dMapSprite*)sprite) setTile:index tile:tile];
+    
+    [tile release];
     
     return NUMBOOL(TRUE);
 }
@@ -181,13 +194,17 @@
     ENSURE_SINGLE_ARG(args, NSNumber);
     NSInteger index = [args intValue];
     
-    if (index >= ((QuickTiGame2dMapSprite*)sprite).tileCount) {
+    if (index < 0 || index >= ((QuickTiGame2dMapSprite*)sprite).tileCount) {
         return NUMBOOL(FALSE);
     }
     
     [((QuickTiGame2dMapSprite*)sprite) removeTile:index];
     
     return NUMBOOL(TRUE);
+}
+
+-(id)setTile:(id)args {
+    return [self updateTile:args];
 }
 
 -(id)flipTile:(id)args {

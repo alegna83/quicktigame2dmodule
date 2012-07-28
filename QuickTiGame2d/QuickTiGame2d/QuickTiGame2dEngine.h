@@ -66,7 +66,6 @@ typedef struct CameraInfo {
     BOOL loaded;
     
     ArrayStackQueue* sceneStack;
-    ArrayStackQueue* snapshotQueue;
     
     NSMutableDictionary* notificationEventCache;
     NSMutableDictionary* fpsNotificationEventCache;
@@ -82,11 +81,9 @@ typedef struct CameraInfo {
     
     BOOL takeSnapshot;
     BOOL releaseSnapshot;
+    
     QuickTiGame2dTexture* snapshotTexture;
     QuickTiGame2dSprite*  snapshotSprite;
-    
-    NSInteger sceneEventType;
-    QuickTiGame2dScene* sceneEventArg;
     
     CameraInfo defaultPortraitCamera;
     CameraInfo defaultLandscapeCamera;
@@ -104,8 +101,6 @@ typedef struct CameraInfo {
     
     QuickTiGame2dScene* hudScene;
     QuickTiGame2dScene* previousScene;
-    
-    BOOL resetPreviousScene;
 }
 @property (readwrite) GLint viewportWidth;
 @property (readwrite) GLint viewportHeight;

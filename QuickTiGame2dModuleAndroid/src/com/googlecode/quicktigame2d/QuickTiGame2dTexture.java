@@ -78,7 +78,7 @@ public class QuickTiGame2dTexture {
 	public void onLoad(GL10 gl, byte[] data) {
 		if (loaded) return;
 
-		if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGameTexture.onLoad " + getDescription());
+		if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "load Texture " + getDescription());
 
 		// generate texture id even if no image is bound to this texture.
 		gl.glGenTextures(1, GENERATED_TEXTUREID, 0);
@@ -186,7 +186,7 @@ public class QuickTiGame2dTexture {
 	
 	public void onDispose(GL10 gl) {
 		if (!loaded) return;
-		if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGameTexture.onDispose " + getDescription());
+		if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "unload Texture " + getDescription());
 
 		deleteTextureBuffer(gl);
 		loaded = false;
@@ -194,7 +194,7 @@ public class QuickTiGame2dTexture {
 
 	public void reload(GL10 gl) {
 		if (!loaded) return;
-		if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGameTexture.reload " + getDescription());
+		if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "reload Texture" + getDescription());
 		
 		deleteTextureBuffer(gl);
 		loaded = false;

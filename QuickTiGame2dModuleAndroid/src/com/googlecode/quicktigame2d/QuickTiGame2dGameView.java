@@ -32,7 +32,6 @@ import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Stack;
@@ -49,14 +48,16 @@ import android.graphics.PixelFormat;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.GLU;
+import android.os.Handler;
 
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.util.TiOrientationHelper;
 import org.appcelerator.titanium.TiContext.OnLifecycleEvent;
 import com.googlecode.quicktigame2d.opengl.GLHelper;
 import com.googlecode.quicktigame2d.util.Base64;
+import com.googlecode.quicktigame2d.util.RunnableGL;
 
-public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, OnLifecycleEvent {
+public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, OnLifecycleEvent, Runnable {
 
 	public static int correctionHint = GL10.GL_NICEST;
 	public static int textureFilter  = GL10.GL_NEAREST;
@@ -64,9 +65,6 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	private static final int GAME_STOPPED = 0;
 	private static final int GAME_STARTED = 1;
 	private static final int GAME_PAUSED  = 2;
-	
-	private static final int SNAPSHOT_TAKE    = 0;
-	private static final int SNAPSHOT_RELEASE = 1;
 	
 	private static long startTime = System.currentTimeMillis();
 	
@@ -97,9 +95,8 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	private boolean shouldReloadSnapshot = true;
 	private boolean squareVBOLoaded = false;
 
-	private Queue<Integer> snapshotQueue = new ConcurrentLinkedQueue<Integer>();;
-	private Queue<Integer> sceneCommandQueue = new LinkedList<Integer>();;
-	private Queue<QuickTiGame2dScene> sceneSceneQueue = new LinkedList<QuickTiGame2dScene>();;
+	private static Queue<RunnableGL> beforeCommandQueue = new ConcurrentLinkedQueue<RunnableGL>();
+	private static Queue<RunnableGL> afterCommandQueue  = new ConcurrentLinkedQueue<RunnableGL>();;
 
 	private boolean offscreenSupported = false;
 	private boolean takeSnapshot    = false;
@@ -122,22 +119,20 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	private boolean debug  = false;
 	
 	private HashMap<String, QuickTiGame2dTexture> textureCache = new HashMap<String, QuickTiGame2dTexture>();
-	private ArrayList<String> waitingForLoadTextures    = new ArrayList<String>();
-	private ArrayList<String> waitingForUnloadTextures  = new ArrayList<String>();
 	
 	private Stack<QuickTiGame2dScene> sceneStack = new Stack<QuickTiGame2dScene>();
 	private List<GameViewEventListener> listeners = new ArrayList<GameViewEventListener>();
-	private static List<Integer[]> waitingForDeleteBuffers = new ArrayList<Integer[]>();
 	
 	private List<QuickTiGame2dTransform> cameraTransforms = new ArrayList<QuickTiGame2dTransform>();
 	private List<QuickTiGame2dTransform> cameraTransformsToBeRemoved = new ArrayList<QuickTiGame2dTransform>();
 	
 	private QuickTiGame2dScene hudScene;
 	private QuickTiGame2dScene previousScene = null;
-	private boolean resetPreviousScene = false;
 	
 	private boolean isRendererSet    = false;
 	private boolean opaqueBackground = true;
+	
+	private Handler redrawHandler = new Handler();
 	
 	public QuickTiGame2dGameView(Context context) {
 		super(context);
@@ -194,6 +189,7 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	
 	public void onLostFocus() {
 		focused = false;
+		
 		synchronized (listeners) {
 			for (GameViewEventListener listener : listeners) {
 				listener.onLostFocus();
@@ -201,19 +197,36 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 		}
 	}
 	
+	/*
+     * Requrest drawing OpenGL surface
+	 */
+	@Override
+	public void run() {
+		if (focused) {
+			requestRender();
+			redrawHandler.postDelayed(this, getFpsMsec());
+		}
+	}
+	
 	public void onGainedFocus() {
 		
 		if (!isRendererSet) {
 			setRenderer(this);
+			setRenderMode(RENDERMODE_WHEN_DIRTY);
+			
 			isRendererSet = true;
 		}
 		
 		focused = true;
+		
 		synchronized (listeners) {
 			for (GameViewEventListener listener : listeners) {
 				listener.onGainedFocus();
 			}
 		}
+		
+        // Enqueue drawing OpenGL surface
+        redrawHandler.post(this);
 	}
 	
 	public void onDispose() {
@@ -258,19 +271,24 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 
 	public void startCurrentScene() {
 		releaseSnapshot();
-		resetPreviousScene = true;
 	}
 	
-	public void commitLoadTexture(String texture) {
-		synchronized (waitingForLoadTextures) {
-			waitingForLoadTextures.add(texture);
-		}
+	public void commitLoadTexture(final String texture) {
+    	afterCommandQueue.offer(new RunnableGL() {
+    		@Override
+    		public void run(GL10 gl) {
+				loadTexture(gl, texture);
+    		}
+    	});
 	}
 
-	public void commitUnloadTexture(String texture) {
-		synchronized (waitingForUnloadTextures) {
-			waitingForUnloadTextures.add(texture);
-		}
+	public void commitUnloadTexture(final String texture) {
+    	afterCommandQueue.offer(new RunnableGL() {
+    		@Override
+    		public void run(GL10 gl) {
+				unloadTexture(gl, texture);
+    		}
+    	});
 	}
 	
 	public QuickTiGame2dTexture getTextureFromCache(String name) {
@@ -318,50 +336,16 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 		textureCache.remove(name);
 	}
 	
-	private void loadWaitingTextures(GL10 gl) {
-		synchronized (waitingForLoadTextures) {
-			for (String name : waitingForLoadTextures) {
-				if (textureCache.containsKey(name)) continue;
-				loadTexture(gl, name);
-			}
-			waitingForLoadTextures.clear();
-		}
+	public static void deleteGLBuffer(final int[] ids) {
+    	afterCommandQueue.offer(new RunnableGL() {
+    		@Override
+    		public void run(GL10 gl10) {
+    			GL11 gl = (GL11)gl10;
+    			gl.glDeleteBuffers(ids.length, ids, 0);
+    		}
+    	});
 	}
 	
-	private void unloadWaitingTextures(GL10 gl) {
-		synchronized (waitingForUnloadTextures) {
-			for (String name : waitingForUnloadTextures) {
-				if (!textureCache.containsKey(name)) continue;
-				unloadTexture(gl, name);
-			}
-			waitingForUnloadTextures.clear();
-		}
-	}
-
-	public static void deleteGLBuffer(int[] ids) {
-		Integer[] intObj = new Integer[ids.length];
-		for  (int i = 0; i < ids.length; i++) {
-			intObj[i] = ids[i];
-		}
-		synchronized (waitingForDeleteBuffers) {
-			waitingForDeleteBuffers.add(intObj);
-		}
-	}
-	
-	private static void deleteWaitingGLBuffers(GL10 gl10) {
-		GL11 gl = (GL11)gl10;
-		synchronized (waitingForDeleteBuffers) {
-			for (Integer[] intObj : waitingForDeleteBuffers) {
-				int[] ids = new int[intObj.length];
-				for (int i = 0; i < ids.length; i++) {
-					ids[i] = intObj[i];
-				}
-				gl.glDeleteBuffers(ids.length, ids, 0);
-			}
-			waitingForDeleteBuffers.clear();
-		}
-	}
-
 	private void loadSquareVBOPointer(GL10 gl10) {
 		if (squareVBOLoaded) return;
 		
@@ -532,6 +516,58 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 		// look ahead for 1 frame
 		return delta + 16 >= getFpsMsec();
 	}
+
+	private void prepareScreenShot(GL10 gl) {
+        
+        if (!takeSnapshot && releaseSnapshot) {
+            if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:releaseSnapshot");
+            if (snapshotSprite != null) {
+            	snapshotSprite.onDispose();
+            	snapshotSprite = null;
+            }
+            releaseSnapshot = false;
+        }
+        
+        if (takeSnapshot) {
+            if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:takeSnapshot start");
+            
+            GL11ExtensionPack gl11Ext = (GL11ExtensionPack)gl;
+            
+            int[] framebufferOldId = new int[1];
+            gl11Ext.glGetIntegerv(GL11ExtensionPack.GL_FRAMEBUFFER_BINDING_OES, framebufferOldId, 0);
+            int error = gl.glGetError();
+            if (error != GL10.GL_NO_ERROR) {
+                framebufferOldId[0] = 0;
+            }
+            snapshotTexture.setFramebufferOldId(framebufferOldId[0]);
+            
+            gl11Ext.glBindFramebufferOES(GL11ExtensionPack.GL_FRAMEBUFFER_OES, snapshotTexture.getFramebufferId());
+            
+            dirty = true;
+        }
+	}
+
+	private void finishScreenShot(GL10 gl) {
+        if (takeSnapshot) {
+            if(snapshotTexture.getFramebufferOldId() >= 0) {
+	            GL11ExtensionPack gl11Ext = (GL11ExtensionPack)gl;
+	            
+                gl11Ext.glBindFramebufferOES(GL11ExtensionPack.GL_FRAMEBUFFER_OES, snapshotTexture.getFramebufferOldId());
+                snapshotTexture.setFramebufferOldId(0);
+
+                snapshotSprite  = new QuickTiGame2dSprite();
+                snapshotSprite.setImage(QuickTiGame2dConstant.SNAPSHOT_TEXTURE_NAME);
+                snapshotSprite.setWidth(width);
+                snapshotSprite.setHeight(height);
+                snapshotSprite.setX(0);
+                snapshotSprite.setY(0);
+                snapshotSprite.setZ(99.5f);
+            }
+            
+            takeSnapshot = false;
+            if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:takeSnapshot end");
+        }
+	}
 	
 	@Override
 	public void onDrawFrame(GL10 gl) {
@@ -545,22 +581,24 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 		
 		restoreGLState(gl, true);
 
+		while(!beforeCommandQueue.isEmpty()) {
+			beforeCommandQueue.poll().run(gl);
+		}
+		
 		QuickTiGame2dScene scene = this.topScene();
 		
-		if (previousScene != null) {
+		if (!takeSnapshot && previousScene != null) {
 			if (previousScene != scene) {
 				previousScene.onDeactivate();
-			} else {
-				previousScene = null;
 			}
+			previousScene = null;
 		}
 		
 		if (scene != null && status != GAME_STOPPED) {
 			
 			// check event delta time
 			int delta = (int)((uptime() - lastOnDrawTime) * 1000);
-			boolean fpsTimeElapsed = isFpsTimeElapsed(delta);
-			if (fpsTimeElapsed && enableOnDrawFrameEvent) {
+			if (enableOnDrawFrameEvent) {
 				synchronized (listeners) {
 					for (GameViewEventListener listener : listeners) {
 						listener.onDrawFrame(delta);
@@ -568,9 +606,9 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 				}
 			}
 			
-			if (fpsTimeElapsed) lastOnDrawTime = uptime();
+			lastOnDrawTime = uptime();
 			
-	        if (enableOnFpsEvent && fpsTimeElapsed) {
+	        if (enableOnFpsEvent) {
 	        	fpsFrameCount++;
 	        	int   fpsdelta = (int)((uptime() - lastOnFpsTime) * 1000);
 	        	float fpsvalue = fpsFrameCount / (fpsdelta / 1000.0f);
@@ -585,45 +623,10 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	        	}
 	        }
 			
-			Integer snapshotCommand = snapshotQueue.poll();
-			
-			if (snapshotCommand != null) {
-				if (snapshotCommand.intValue() == SNAPSHOT_TAKE) {
-					takeSnapshot = true;
-				} else if (snapshotCommand.intValue() == SNAPSHOT_RELEASE) {
-					releaseSnapshot = true;
-				}
-			}
-			
-	        if (!takeSnapshot && releaseSnapshot) {
-	            if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:releaseSnapshot");
-	            if (snapshotSprite != null) {
-	            	snapshotSprite.onDispose();
-	            	snapshotSprite = null;
-	            }
-	            releaseSnapshot = false;
-	        }
-	        
-	        if (takeSnapshot) {
-	            if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:takeSnapshot start");
-	            
-	            GL11ExtensionPack gl11Ext = (GL11ExtensionPack)gl;
-	            
-	            int[] framebufferOldId = new int[1];
-	            gl11Ext.glGetIntegerv(GL11ExtensionPack.GL_FRAMEBUFFER_BINDING_OES, framebufferOldId, 0);
-                int error = gl.glGetError();
-                if (error != GL10.GL_NO_ERROR) {
-                    framebufferOldId[0] = 0;
-                }
-                snapshotTexture.setFramebufferOldId(framebufferOldId[0]);
-	            
-	            gl11Ext.glBindFramebufferOES(GL11ExtensionPack.GL_FRAMEBUFFER_OES, snapshotTexture.getFramebufferId());
-	            
-	            dirty = true;
-	        }
+	        prepareScreenShot(gl);
 	        
 			synchronized (cameraTransforms) {
-				if (fpsTimeElapsed) onTransformCamera();
+				onTransformCamera();
 			}
 			
 			updateViewport(gl);
@@ -631,7 +634,7 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 			scene.setDebug(debug);
 			scene.setSnapshot(takeSnapshot);
 			
-			scene.onDrawFrame(gl, fpsTimeElapsed, this);
+			scene.onDrawFrame(gl, this);
 			
 	        if (hudScene.hasSprite()) {
 	            updateHUDViewport(gl);
@@ -639,80 +642,27 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	            hudScene.setDebug(debug);
 	            hudScene.setSnapshot(takeSnapshot);
 	            
-	            hudScene.onDrawFrame(gl, fpsTimeElapsed, this);
+	            hudScene.onDrawFrame(gl, this);
 	            
 	            dirty = true;
 	        }
-	        
-	        if (takeSnapshot) {
-	            if(snapshotTexture.getFramebufferOldId() >= 0) {
-		            GL11ExtensionPack gl11Ext = (GL11ExtensionPack)gl;
-		            
-	                gl11Ext.glBindFramebufferOES(GL11ExtensionPack.GL_FRAMEBUFFER_OES, snapshotTexture.getFramebufferOldId());
-	                snapshotTexture.setFramebufferOldId(0);
 
-	                snapshotSprite  = new QuickTiGame2dSprite();
-	                snapshotSprite.setImage(QuickTiGame2dConstant.SNAPSHOT_TEXTURE_NAME);
-	                snapshotSprite.setWidth(width);
-	                snapshotSprite.setHeight(height);
-	                snapshotSprite.setX(0);
-	                snapshotSprite.setY(0);
-	                snapshotSprite.setZ(99.5f);
-	            }
-	            
-	            takeSnapshot = false;
-	            if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:takeSnapshot end");
-	        }
+	        finishScreenShot(gl);
 	        
 	        scene.setSnapshot(takeSnapshot);
-			
 		} else {
 			gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
 			gl.glClearColor(color[0], color[1], color[2], color[3]);
 		}
 		
 	    if (snapshotSprite != null) {
-	        if (!snapshotSprite.isLoaded()) snapshotSprite.onLoad(gl, this);
-	        snapshotSprite.onDrawFrame(gl, true);
-	    }
-		
-		loadWaitingTextures(gl);
-		unloadWaitingTextures(gl);
-		deleteWaitingGLBuffers(gl);
-		
-	    if (snapshotQueue.isEmpty()) {
-	    	synchronized(sceneCommandQueue) {
-	    		Integer sceneCommandType = sceneCommandQueue.poll();
-
-	    		if (sceneCommandType != null) {
-	    			if (sceneCommandType.intValue() == QuickTiGame2dConstant.SCENE_EVENT_POP) {
-	    				if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:popScene");
-	    				previousScene = popSceneOrNull();
-	    				onDeactivateScene(previousScene);
-	    				onActivateScene(topScene());
-	    			} else if (sceneCommandType.intValue() == QuickTiGame2dConstant.SCENE_EVENT_PUSH) {
-	    				if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:pushScene");
-	    				previousScene = topScene();
-	    				onDeactivateScene(previousScene);
-	    				sceneStack.push(sceneSceneQueue.poll());
-	    				onActivateScene(topScene());
-	    			} else if (sceneCommandType.intValue() == QuickTiGame2dConstant.SCENE_EVENT_REPLACE) {
-	    				if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:replaceScene");
-	    				previousScene = popSceneOrNull();
-	    				onDeactivateScene(previousScene);
-	    				sceneStack.push(sceneSceneQueue.poll());
-	    				onActivateScene(topScene());
-	    			}
-
-	    			sceneSceneQueue.clear();
-	    		}
-	    	}
+	        snapshotSprite.onLoad(gl, this);
+	        snapshotSprite.onDrawFrame(gl);
 	    }
 	    
-	    if (resetPreviousScene) {
-	    	previousScene = null;
-	    	resetPreviousScene = false;
-	    }
+		while(beforeCommandQueue.isEmpty() && !afterCommandQueue.isEmpty()) {
+			afterCommandQueue.poll().run(gl);
+		}
 	    
 		restoreGLState(gl, false);
 	}
@@ -914,29 +864,52 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	}
 	
 	public QuickTiGame2dScene popScene() {
-	    synchronized(sceneCommandQueue) {
-	    	snapshot();
-	    	sceneCommandQueue.offer(new Integer(QuickTiGame2dConstant.SCENE_EVENT_POP));
-	    	sceneSceneQueue.clear();
-	    }
+    	snapshot();
+
+    	afterCommandQueue.offer(new RunnableGL() {
+    		@Override
+    		public void run(GL10 gl) {
+    			if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:popScene");
+    			previousScene = popSceneOrNull();
+    			onDeactivateScene(previousScene);
+    			onActivateScene(topScene());
+    		}
+    	});
+	    
 	    return topScene();
 	}
 
-	public QuickTiGame2dScene pushScene(QuickTiGame2dScene scene) {
-	    synchronized(sceneCommandQueue) {
-		    snapshot();
-	    	sceneCommandQueue.offer(new Integer(QuickTiGame2dConstant.SCENE_EVENT_PUSH));
-	    	sceneSceneQueue.offer(scene);
-	    }
+	public QuickTiGame2dScene pushScene(final QuickTiGame2dScene scene) {
+	    snapshot();
+	    
+	    afterCommandQueue.offer(new RunnableGL() {
+	    	@Override
+	    	public void run(GL10 gl) {
+	    		if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:pushScene");
+	    		previousScene = topScene();
+	    		onDeactivateScene(previousScene);
+	    		sceneStack.push(scene);
+	    		onActivateScene(topScene());
+	    	}
+	    });
+	    
 	    return scene;
 	}
 	
-	public QuickTiGame2dScene replaceScene(QuickTiGame2dScene scene) {
-	    synchronized(sceneCommandQueue) {
-		    snapshot();
-	    	sceneCommandQueue.offer(new Integer(QuickTiGame2dConstant.SCENE_EVENT_REPLACE));
-	    	sceneSceneQueue.offer(scene);
-	    }
+	public QuickTiGame2dScene replaceScene(final QuickTiGame2dScene scene) {
+	    snapshot();
+	    
+	    afterCommandQueue.offer(new RunnableGL() {
+	    	@Override
+	    	public void run(GL10 gl) {
+	    		if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:replaceScene");
+	    		previousScene = popSceneOrNull();
+	    		onDeactivateScene(previousScene);
+	    		sceneStack.push(scene);
+	    		onActivateScene(topScene());
+	    	}
+	    });
+	    
 	    return topScene();
 	}
 	
@@ -966,13 +939,23 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	
 	public void snapshot() {
 	    if (offscreenSupported && topScene() != null) {
-	    	snapshotQueue.offer(new Integer(SNAPSHOT_TAKE));
+	    	beforeCommandQueue.offer(new RunnableGL() {
+	    		@Override
+	    		public void run(GL10 gl) {
+	    			takeSnapshot = true;
+	    		}
+	    	});
 	    }
 	}
 
 	public void releaseSnapshot() {
 	    if (offscreenSupported && topScene() != null) {
-	    	snapshotQueue.offer(new Integer(SNAPSHOT_RELEASE));
+	    	beforeCommandQueue.offer(new RunnableGL() {
+	    		@Override
+	    		public void run(GL10 gl) {
+	    			releaseSnapshot = true;
+	    		}
+	    	});
 	    }
 	}
 
@@ -1145,6 +1128,7 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	@Override
 	public void onResume() {
         if (debug) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dGameView:onResume");
+        
 		super.onResume();
 	}
 	

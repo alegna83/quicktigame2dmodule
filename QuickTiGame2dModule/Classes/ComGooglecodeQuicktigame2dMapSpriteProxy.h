@@ -50,6 +50,7 @@
 -(id)updateTile:(id)args;
 -(id)updateTiles:(id)args;
 -(id)removeTile:(id)args;
+-(id)setTile:(id)args;
 -(id)flipTile:(id)args;
 -(void)animate:(id)args;
 -(void)stop:(id)args;

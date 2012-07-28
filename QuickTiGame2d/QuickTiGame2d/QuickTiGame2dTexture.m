@@ -228,6 +228,8 @@
     }
     
     framebufferOldId = 0;
+    
+    if ([QuickTiGame2dEngine debug] && !isSnapshot) NSLog(@"[DEBUG] unload Texture: %@", name);
 }
 
 -(void)genTextures {
@@ -242,7 +244,6 @@
 }
 
 -(void)dealloc {
-    if ([QuickTiGame2dEngine debug] && !isSnapshot) NSLog(@"[DEBUG] dealloc Texture: %@", name);
     [name release];
     [super dealloc];
 }

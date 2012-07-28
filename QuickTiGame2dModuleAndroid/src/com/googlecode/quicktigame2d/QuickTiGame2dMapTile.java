@@ -53,10 +53,16 @@ public class QuickTiGame2dMapTile {
     public float initialX;
     public float initialY;
     
-    boolean  isOverwrap;
-    float overwrapWidth;
-    float overwrapHeight;
-    boolean  suppressUpdate;
+    public boolean  isOverwrap;
+    public float overwrapWidth;
+    public float overwrapHeight;
+    public float overwrapAtlasX;
+    public float overwrapAtlasY;
+    
+    public boolean  suppressUpdate;
+    
+    public boolean isChild;
+    public int parent;
     
     public QuickTiGame2dMapTile() {
         gid   = 0;
@@ -82,7 +88,12 @@ public class QuickTiGame2dMapTile {
         isOverwrap = false;
         overwrapWidth  = 0;
         overwrapHeight = 0;
+        overwrapAtlasX = 0;
+        overwrapAtlasY = 0;
         suppressUpdate = false;
+        
+        isChild = false;
+        parent  = 0;
     }
     
     public void cc(QuickTiGame2dMapTile other) {
@@ -108,7 +119,34 @@ public class QuickTiGame2dMapTile {
         isOverwrap = other.isOverwrap;
         overwrapWidth = other.overwrapWidth;
         overwrapHeight = other.overwrapHeight;
+        overwrapAtlasX = other.overwrapAtlasX;
+        overwrapAtlasY = other.overwrapAtlasY;
         suppressUpdate = other.suppressUpdate;
+        isChild        = other.isChild;
+        parent         = other.parent;
     }
     
+    public String description() {
+        return String.format("gid:%d, firstgid:%d size:%fx%f, initial:%fx%f atlas:%fx%f atlas size:%fx%f offset:%fx%f overwrap:%fx%f overwrap atlas:%fx%f",
+        					gid, firstgid, width, height, initialX, initialY, atlasX, atlasY, atlasWidth, 
+        					atlasHeight, offsetX, offsetY, overwrapWidth, overwrapHeight, overwrapAtlasX, overwrapAtlasY); 
+    }
+
+    public void clearViewProperty(QuickTiGame2dMapSprite map) {
+        gid   = 0;
+        red   = 1;
+        green = 1;
+        blue  = 1;
+        alpha = 1;
+        flip  = false;
+        isOverwrap = false;
+        isChild = false;
+        parent = 0;
+        
+        width   = map.getTileWidth();
+        height  = map.getTileHeight();
+        offsetX = map.getTileOffsetX();
+        offsetY = map.getTileOffsetY();
+    }
+
 }

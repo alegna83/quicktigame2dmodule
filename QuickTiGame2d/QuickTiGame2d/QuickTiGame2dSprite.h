@@ -143,6 +143,8 @@
 @property (readwrite) BOOL  followParentTransformSize;
 @property (readwrite) BOOL  followParentTransformColor;
 @property (readwrite) BOOL  followParentTransformFrameIndex;
+@property (readonly) float scaledWidth;
+@property (readonly) float scaledHeight;
 
 -(void)onLoad;
 -(void)bindVertex;

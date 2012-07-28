@@ -1043,6 +1043,14 @@
         [children removeObject:child];
     }
 }
+
+-(float)scaledWidth {
+    return self.width * self.scaleX;
+}
+
+-(float)scaledHeight {
+    return self.height * self.scaleY;
+}
 @end
 
 @implementation QuickTiGame2dImagePackInfo 

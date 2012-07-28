@@ -68,7 +68,7 @@ public class QuickTiGame2dScene {
 		loaded = true;
 	}
 	
-	public void onDrawFrame(GL10 gl, boolean fpsTimeElapsed, QuickTiGame2dGameView view) {
+	public void onDrawFrame(GL10 gl, QuickTiGame2dGameView view) {
 		if (!loaded) onLoad(gl);
 
 		this.view = view;
@@ -102,7 +102,7 @@ public class QuickTiGame2dScene {
 	                dstBlendFactor = sprite.getDstBlendFactor();
 	                gl.glBlendFunc(srcBlendFactor, dstBlendFactor);
 	            }
-			sprite.onDrawFrame(gl, fpsTimeElapsed);
+			sprite.onDrawFrame(gl);
 		}
 		}
 	}

@@ -50,14 +50,6 @@
 
 #define SNAPSHOT_TEXTURE_NAME "/quicktigame2d/@snapshot"
 
-#define SCENE_EVENT_UNKNOWN 0
-#define SCENE_EVENT_PUSH    1
-#define SCENE_EVENT_POP     2
-#define SCENE_EVENT_REPLACE 3
-
-#define SNAPSHOT_TAKE 0
-#define SNAPSHOT_RELEASE 1
-
 #define DEFAULT_ONFPS_INTERVAL 5000
 
 #define ANIMATION_EASING_CUBIC_INOUT   0

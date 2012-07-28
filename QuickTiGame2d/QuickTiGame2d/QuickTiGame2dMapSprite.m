@@ -38,6 +38,11 @@
 - (void)createQuadBuffer;
 - (void)updateQuad:(NSInteger)index tile:(QuickTiGame2dMapTile*)cctile;
 - (void)addTileToArray:(QuickTiGame2dMapTile*)tile array:(NSMutableArray*)array;
+- (void)updateTileProperty:(QuickTiGame2dMapTile*)tile;
+@end
+
+@interface QuickTiGame2dMapTile (PrivateMethods)
+-(void)clearViewProperty:(QuickTiGame2dMapSprite*)map;
 @end
 
 @implementation QuickTiGame2dMapTile
@@ -45,6 +50,7 @@
 @synthesize atlasX, atlasY, firstgid, margin, border, atlasWidth, atlasHeight;
 @synthesize offsetX, offsetY, initialX, initialY, positionFixed;
 @synthesize image, index, suppressUpdate, isOverwrap, overwrapWidth, overwrapHeight;
+@synthesize overwrapAtlasX, overwrapAtlasY, isChild, parent;
 
 -(id)init {
     self = [super init];
@@ -68,11 +74,15 @@
         initialY = 0;
         positionFixed = FALSE;
         index = 0;
+        parent = 0;
         
         suppressUpdate = FALSE;
         isOverwrap     = FALSE;
+        isChild        = FALSE;
         overwrapWidth  = 0;
         overwrapHeight = 0;
+        overwrapAtlasX = 0;
+        overwrapAtlasY = 0;
     }
     return self;
 }
@@ -101,12 +111,38 @@
     isOverwrap     = other.isOverwrap;
     overwrapWidth  = other.overwrapWidth;
     overwrapHeight = other.overwrapHeight;
+    overwrapAtlasX = other.overwrapAtlasX;
+    overwrapAtlasY = other.overwrapAtlasY;
+    isChild        = other.isChild;
+    parent         = other.parent;
+}
+
+-(NSString*)description {
+    return [NSString stringWithFormat:@"gid:%d, firstgid:%d size:%fx%f, initial:%fx%f atlas:%fx%f atlas size:%fx%f offset:%fx%f overwrap:%fx%f overwrap atlas:%fx%f", gid, firstgid, width, height, initialX, initialY, atlasX, atlasY, atlasWidth, atlasHeight, offsetX, offsetY, overwrapWidth, overwrapHeight, overwrapAtlasX, overwrapAtlasY]; 
+}
+
+-(void)clearViewProperty:(QuickTiGame2dMapSprite*)map {
+    gid   = 0;
+    red   = 1;
+    green = 1;
+    blue  = 1;
+    alpha = 1;
+    flip  = FALSE;
+    isOverwrap = FALSE;
+    isChild    = FALSE;
+    parent     = 0;
+    
+    width   = map.tileWidth;
+    height  = map.tileHeight;
+    offsetX = map.tileOffsetX;
+    offsetY = map.tileOffsetY;
 }
 @end
 
 @implementation QuickTiGame2dMapSprite
 @synthesize tileWidth, tileHeight, tileCount, tileCountX, tileCountY;
 @synthesize firstgid, tileTiltFactorX, tileTiltFactorY;
+@synthesize tileOffsetX, tileOffsetY;
 
 -(id)init {
     self = [super init];
@@ -281,7 +317,13 @@
         
         int xcount = (int)round((awidth - (tile.margin * 2) + tile.border) / (float)(twidth  + tile.border));
         int xindex = tileNo % xcount;
-        return tile.atlasX + ((tile.border + twidth) * xindex) + tile.margin;
+
+        float atlasX = tile.atlasX;
+        if (tile.flip && tile.isOverwrap) {
+            atlasX = (tile.overwrapAtlasX * 2) - tile.atlasX - tile.width + tile.overwrapWidth;
+        }
+        
+        return atlasX + ((tile.border + twidth) * xindex) + tile.margin;
     } else {
         int xcount = (int)round((self.texture.width - (margin * 2) + border) / (float)(tileWidth  + border));
         int xindex = tileNo % xcount;
@@ -455,41 +497,43 @@
     
     if (tile.gid - tile.firstgid < 0) tile.alpha = 0;
     
+    float parentAlpha = [self alpha];
+    
     quads[vi + 2] = tile.flip ? [self tileCoordEndX:tile] : [self tileCoordStartX:tile]; // texture x
     quads[vi + 3] = [self tileCoordEndY:tile]; // texture y
     
-    quads[vi + 4] = tile.red * tile.alpha;   // red
-    quads[vi + 5] = tile.green * tile.alpha; // green
-    quads[vi + 6] = tile.blue * tile.alpha;  // blue
-    quads[vi + 7] = tile.alpha; // alpha
+    quads[vi + 4] = tile.red * tile.alpha * parentAlpha;   // red
+    quads[vi + 5] = tile.green * tile.alpha * parentAlpha; // green
+    quads[vi + 6] = tile.blue * tile.alpha * parentAlpha;  // blue
+    quads[vi + 7] = tile.alpha * parentAlpha; // alpha
     
     // -----------------------------
     quads[vi + 10] = tile.flip ? [self tileCoordEndX:tile] : [self tileCoordStartX:tile];
     quads[vi + 11] = [self tileCoordStartY:tile];
     
-    quads[vi + 12] = tile.red * tile.alpha;   // red
-    quads[vi + 13] = tile.green * tile.alpha; // green
-    quads[vi + 14] = tile.blue * tile.alpha;  // blue
-    quads[vi + 15] = tile.alpha; // alpha
+    quads[vi + 12] = tile.red * tile.alpha * parentAlpha;   // red
+    quads[vi + 13] = tile.green * tile.alpha * parentAlpha; // green
+    quads[vi + 14] = tile.blue * tile.alpha * parentAlpha;  // blue
+    quads[vi + 15] = tile.alpha * parentAlpha; // alpha
     
     // -----------------------------
     quads[vi + 18] = tile.flip ? [self tileCoordStartX:tile] : [self tileCoordEndX:tile];
     quads[vi + 19] = [self tileCoordStartY:tile];
     
-    quads[vi + 20] = tile.red * tile.alpha;   // red
-    quads[vi + 21] = tile.green * tile.alpha; // green
-    quads[vi + 22] = tile.blue * tile.alpha;  // blue
-    quads[vi + 23] = tile.alpha; // alpha
+    quads[vi + 20] = tile.red * tile.alpha * parentAlpha;   // red
+    quads[vi + 21] = tile.green * tile.alpha * parentAlpha; // green
+    quads[vi + 22] = tile.blue * tile.alpha * parentAlpha;  // blue
+    quads[vi + 23] = tile.alpha * parentAlpha; // alpha
     
     // -----------------------------
     
     quads[vi + 26] = tile.flip ? [self tileCoordStartX:tile] : [self tileCoordEndX:tile];
     quads[vi + 27] = [self tileCoordEndY:tile];
     
-    quads[vi + 28] = tile.red * tile.alpha;   // red
-    quads[vi + 29] = tile.green * tile.alpha; // green
-    quads[vi + 30] = tile.blue * tile.alpha;  // blue
-    quads[vi + 31] = tile.alpha; // alpha
+    quads[vi + 28] = tile.red * tile.alpha * parentAlpha;   // red
+    quads[vi + 29] = tile.green * tile.alpha * parentAlpha; // green
+    quads[vi + 30] = tile.blue * tile.alpha * parentAlpha;  // blue
+    quads[vi + 31] = tile.alpha * parentAlpha; // alpha
     
     if (tile.width > 0 && tile.height > 0) {
         
@@ -517,31 +561,26 @@
     }
 }
 
--(void)setTile:(NSInteger)index gid:(NSInteger)gid {
-    QuickTiGame2dMapTile* tile = [[QuickTiGame2dMapTile alloc] init];
-    tile.gid = gid;
-    tile.alpha = 1;
-    tile.index = index;
-    
-    [self setTile:index tile:tile];
-    
-    [tile release];
-}
-
--(NSInteger)getOverwrapTileCount:(QuickTiGame2dMapTile*)tile {
+-(NSInteger)getChildTileRowCount:(QuickTiGame2dMapTile*)tile {
     return (NSInteger)(tile.width / tileWidth);
 }
 
--(void)setTile:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile {
-    
-    // Clear tile before updating with new tile
-    [self removeTile:index];
-    
-    tile.firstgid = firstgid;
+/*
+ * check if this tile consists of multiple tiles
+ * this assumes tile has same tile count for X&Y axis (2x2, 3x3, 4x4)
+ */
+-(BOOL)hasChild:(QuickTiGame2dMapTile*)tile {
+    return [self getChildTileRowCount:tile] > 1;
+}
 
+-(void)updateTileProperty:(QuickTiGame2dMapTile*)tile {
+    tile.firstgid = firstgid;
+    
     // Update tile properties if we found multiple tilesets
-    if ([tilesets count] > 1 && tile.gid >= 0) {
-        if (tile.image == nil) {
+    if ([tilesets count] > 1) {
+        if (tile.gid <= 0) {
+            tile.image = [[tilesetgids objectAtIndex:0] objectForKey:@"image"];
+        } else if (tile.image == nil) {
             for (id gids in tilesetgids) {
                 NSInteger tsgid = [[gids objectForKey:@"firstgid"] intValue];
                 if (tsgid > tile.gid) {
@@ -569,32 +608,82 @@
             tile.atlasHeight = [[prop objectForKey:@"atlasHeight"] floatValue];
         }
     }
+}
+
+-(void)setTile:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile {
+    
+    if ([self getTile:index].isChild) {
+        NSLog(@"[DEBUG] Tile %d can not be replaced because it is part of multiple tiles.", index);
+        return;
+    }
+    
+    [self updateTileProperty:tile];
     
     // check if this tile consists of multiple tiles
     // this assumes tile has same tile count for X&Y axis (2x2, 3x3, 4x4)
-    int overwrapTileCount = [self getOverwrapTileCount:tile];
-    if (overwrapTileCount >= 2) {
+    int childRowCount = [self getChildTileRowCount:tile];
+    if (childRowCount >= 2) {
+
+        // Fill out neighboring tile with empty tile
+        for (int row = 0; row < childRowCount; row++) {
+            for (int column = 1; column < childRowCount; column++) {
+                
+                int index2 = index + column + (row * tileCountX);
+                QuickTiGame2dMapTile* target = [self getTile:index2];
+                QuickTiGame2dMapTile* neighbor = [[QuickTiGame2dMapTile alloc] init];
+                
+                if (target != nil) {
+                    [neighbor cc:target];
+                } else {
+                    [self updateTileProperty:neighbor];
+                }
+                
+                neighbor.index = index2;
+                neighbor.isChild = TRUE;
+                neighbor.suppressUpdate = TRUE;
+                neighbor.alpha = 0;
+                neighbor.parent = index;
+                
+                @synchronized (updatedTiles) {
+                    [updatedTiles setObject:neighbor forKey:[NSNumber numberWithInt:neighbor.index]];
+                }
+                
+                [neighbor release];
+            }
+        }
+        
         float baseTileHeight = tileWidth * 0.5f;
-        float baseTileMargin = tile.height - (overwrapTileCount * baseTileHeight);
-        for (int i = 2; i <= overwrapTileCount; i++) {
+        float baseTileMargin = tile.height - (childRowCount * baseTileHeight);
+        for (int i = 1; i < childRowCount; i++) {
             
             QuickTiGame2dMapTile* tile2 = [[QuickTiGame2dMapTile alloc] init];
             
             [tile2 cc:tile];
             
-            tile2.positionFixed = FALSE;
-            tile2.index    = index + ((i - 1) * tileCountX);
+            tile2.index    = index + (i * tileCountX);
+            
+            QuickTiGame2dMapTile* target2 = [self getTile:tile2.index];
+            if (target2 != nil) {
+                tile2.initialX = target2.initialX;
+                tile2.initialY = target2.initialY;
+            } else {
+                tile2.positionFixed = FALSE;
+            }
             
             tile2.width    = tileWidth;
             tile2.height   = baseTileHeight + baseTileMargin;
-            tile2.atlasX   = tile.atlasX + ((overwrapTileCount - i) * tileWidth * 0.5f);
-            tile2.atlasY   = tile.atlasY + (baseTileHeight * 0.5f) * (i - 1);
+            tile2.atlasX   = tile.atlasX + ((childRowCount - i - 1) * tileWidth * 0.5f);
+            tile2.atlasY   = tile.atlasY + (baseTileHeight * 0.5f) * i;
             
             tile2.overwrapWidth  = tile.width;
             tile2.overwrapHeight = tile.height;
+            tile2.overwrapAtlasX = tile.atlasX;
+            tile2.overwrapAtlasY = tile.atlasY;
             tile2.isOverwrap      = TRUE;
+            tile2.isChild         = TRUE;
             tile2.offsetX = -tileWidth * 0.5f;
             tile2.offsetY = tile.offsetY;
+            tile2.parent  = index;
             
             tile2.suppressUpdate = TRUE;
             
@@ -638,29 +727,32 @@
 -(BOOL)removeTile:(NSInteger)index {
     if (index >= [tiles count]) return FALSE;
     
-    QuickTiGame2dMapTile* tile = [tiles objectAtIndex:index];
+    QuickTiGame2dMapTile* target = [self getTile:index];
+    if (target == nil) return FALSE;
+    
+    if (target.isChild) {
+        NSLog(@"[DEBUG] Tile %d can not be removed because it is part of multiple tiles.", index);
+        return FALSE;
+    }
     
     // check if this tile consists of multiple tiles
     // this assumes tile has same tile count for X&Y axis (2x2, 3x3, 4x4)
-    NSInteger overwrapTileCount = [self getOverwrapTileCount:tile];
-    for (int i = 1; i < overwrapTileCount; i++) {
-        
-        QuickTiGame2dMapTile* tile2 = [self getTile:(index + (i * tileCountX))];
-        if (tile2 == nil) continue;
-        
-        tile2.gid   = 0;
-        tile2.alpha = 0;
-        
-        @synchronized (updatedTiles) {
-            [updatedTiles setObject:tile2 forKey:[NSNumber numberWithInt:tile2.index]];
+    NSInteger childRowCount = [self getChildTileRowCount:target];
+    // Fill out neighboring tile with empty tile
+    for (int row = 0; row < childRowCount; row++) {
+        for (int column = 0; column < childRowCount; column++) {
+            
+            QuickTiGame2dMapTile* tile2 = [self getTile:index + column + (row * tileCountX)];
+            
+            if (tile2 == nil) continue;
+            
+            [tile2 clearViewProperty:self];
+            tile2.alpha  = 0;
+            
+            @synchronized (updatedTiles) {
+                [updatedTiles setObject:tile2 forKey:[NSNumber numberWithInt:tile2.index]];
+            }
         }
-    }
-    
-    tile.gid   = 0;
-    tile.alpha = 0;
-    
-    @synchronized (updatedTiles) {
-        [updatedTiles setObject:tile forKey:[NSNumber numberWithInt:index]];
     }
     
     return TRUE;
@@ -680,7 +772,7 @@
 }
 
 -(BOOL)collidesIsometric:(float)otherX otherY:(float)otherY withTile:(QuickTiGame2dMapTile*) tile {
-    otherX = otherX - tile.offsetX - tile.initialX;
+    otherX = otherX - tileOffsetX - tile.initialX;
     otherY = otherY - (tileHeight * tileTiltFactorY) - tile.initialY;
     
     float dHeight = tileHeight - (tileHeight * tileTiltFactorY);
@@ -700,8 +792,8 @@
  */
 -(QuickTiGame2dMapTile*)getTileAtPosition:(float)sx sy:(float)sy {
 
-    float posX = sx - x;
-    float posY = sy - y;
+    float posX = (sx - x)  / self.scaleX;
+    float posY = (sy - y)  / self.scaleY;
     
     float tiltStepX = (tileWidth  * tileTiltFactorX);
     float tiltStepY = (tileHeight * tileTiltFactorY);
@@ -791,10 +883,12 @@
 
 -(void)setAlpha:(float)alpha {
     [super setAlpha:alpha];
-    for (int i = 0; i < [tiles count]; i++) {
-        QuickTiGame2dMapTile* tile = [tiles objectAtIndex:i];
-        tile.alpha = alpha;
-        [self setTile:i tile:tile];
+    
+    // Update all tiles to reload buffers
+    @synchronized (updatedTiles) {
+        for (int i = 0; i < [tiles count]; i++) {
+                [updatedTiles setObject:[tiles objectAtIndex:i] forKey:[NSNumber numberWithInt:i]];
+        }
     }
 }
 
@@ -835,6 +929,8 @@
         self.firstgid   = [[prop objectForKey:@"firstgid"]   intValue];
         self.tileWidth  = [[prop objectForKey:@"tilewidth"]  floatValue];
         self.tileHeight = [[prop objectForKey:@"tileheight"] floatValue];
+        self.tileOffsetX =[[prop objectForKey:@"offsetX"] floatValue];
+        self.tileOffsetY =[[prop objectForKey:@"offsetY"] floatValue];
     }
     
     [tilesetgids addObject:[NSDictionary dictionaryWithObjectsAndKeys:
@@ -897,6 +993,30 @@
     [animation release];
     
     animating = TRUE;
+}
+
+-(float)screenX:(QuickTiGame2dMapTile*)tile {
+    return self.x + (tile.initialX + tile.offsetX) * self.scaleX;
+}
+
+-(float)screenY:(QuickTiGame2dMapTile*)tile {
+    return self.y + (tile.initialY + tile.offsetY) * self.scaleY;
+}
+
+-(float)scaledTileWidth {
+    return self.tileWidth  * self.scaleX;
+}
+
+-(float)scaledTileHeight {
+    return self.tileHeight * self.scaleY;
+}
+
+-(float)scaledTileWidth:(QuickTiGame2dMapTile*)tile {
+    return tile.width * self.scaleX;
+}
+
+-(float)scaledTileHeight:(QuickTiGame2dMapTile*)tile {
+    return tile.height * self.scaleY;
 }
 
 @end

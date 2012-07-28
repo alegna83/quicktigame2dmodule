@@ -88,11 +88,17 @@ public class MapSpriteProxy extends SpriteProxy {
 		info.put("blue",  Double.valueOf(tile.blue));
 		info.put("alpha", Double.valueOf(tile.alpha));
 		info.put("flip",  Boolean.valueOf(tile.flip));
+		info.put("isChild",  Boolean.valueOf(tile.isChild));
+		info.put("hasChild", Boolean.valueOf(getMapSprite().hasChild(tile)));
+		info.put("rowCount", Integer.valueOf(getMapSprite().getChildTileRowCount(tile)));
+		info.put("parent",   Integer.valueOf(tile.parent));
 		
-		info.put("screenX",  Double.valueOf(getMapSprite().getX() + tile.initialX + tile.offsetX));
-		info.put("screenY",  Double.valueOf(getMapSprite().getY() + tile.initialY + tile.offsetY));
-		info.put("width",    Double.valueOf(tile.width  > 0 ? tile.width  : getMapSprite().getWidth()));
-		info.put("height",   Double.valueOf(tile.height > 0 ? tile.height : getMapSprite().getHeight()));
+		info.put("screenX",  Double.valueOf(getMapSprite().getScreenX(tile)));
+		info.put("screenY",  Double.valueOf(getMapSprite().getScreenY(tile)));
+		info.put("width",    Double.valueOf(tile.width  > 0 ? 
+				getMapSprite().getScaledTileWidth(tile)  : getMapSprite().getScaledTileWidth()));
+		info.put("height",   Double.valueOf(tile.height > 0 ?
+				getMapSprite().getScaledTileHeight(tile) : getMapSprite().getScaledTileHeight()));
 		info.put("margin",   Double.valueOf(tile.margin));
 		info.put("border",   Double.valueOf(tile.border));
 	}
@@ -123,6 +129,10 @@ public class MapSpriteProxy extends SpriteProxy {
 		updateTileInfoProxyCache(info, tile);
 		
 		return info;
+	}
+	@Kroll.method
+	public boolean setTile(@SuppressWarnings("rawtypes") HashMap info) {
+		return updateTile(info);
 	}
 	
 	@Kroll.method
@@ -157,9 +167,12 @@ public class MapSpriteProxy extends SpriteProxy {
 	        return false;
 	    }
 	    
-	    QuickTiGame2dMapTile tile = getMapSprite().getTile(index);
+	    QuickTiGame2dMapTile target = getMapSprite().getTile(index);
 	    
-	    if (tile == null) return false;
+	    if (target == null) return false;
+	    
+	    QuickTiGame2dMapTile tile = new QuickTiGame2dMapTile();
+	    tile.cc(target);
 	    
 	    if (gid   >= 0) tile.gid   = gid;
 	    if (red   >= 0) tile.red   = red;

@@ -196,7 +196,7 @@ public class QuickTiGame2dSprite {
 		loaded = true;
 	}
 	
-	public void onDrawFrame(GL10 gl10, boolean fpsTimeElapsed) {
+	public void onDrawFrame(GL10 gl10) {
 		GL11 gl = (GL11)gl10;
 
 		// sprite had texture but it is unloaded
@@ -222,9 +222,7 @@ public class QuickTiGame2dSprite {
 		}
 		
 	    synchronized (transforms) {
-			if (fpsTimeElapsed) {
-				onTransform();
-			}
+			onTransform();
 	    }
 	    
 	    gl.glMatrixMode (GL11.GL_MODELVIEW);
@@ -799,6 +797,14 @@ public class QuickTiGame2dSprite {
 	
 	public void setHeight(int height) {
 		this.height = height;
+	}
+	
+	public float getScaledWidth() {
+		return getWidth() * getScaleX();
+	}
+	
+	public float getScaledHeight() {
+		return getHeight() * getScaleY();
 	}
 	
 	public int getBorder() {

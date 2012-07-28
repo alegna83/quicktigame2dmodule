@@ -504,7 +504,6 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		String name = sprite.getImage();
 		
 		KrollDict notificationEventCache = new KrollDict();
-		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, String.format("GameViewProxy.onLoadSprite %s", name));
 		notificationEventCache.put("eventName", "onloadsprite");
 		notificationEventCache.put("uptime", uptime());
 		notificationEventCache.put("name", name);
@@ -518,7 +517,6 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 		String name = sprite.getImage();
 		
 		KrollDict notificationEventCache = new KrollDict();
-		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, String.format("GameViewProxy.onUnloadSprite %s", name));
 		notificationEventCache.put("eventName", "onunloadsprite");
 		notificationEventCache.put("uptime", uptime());
 		notificationEventCache.put("name", name);
