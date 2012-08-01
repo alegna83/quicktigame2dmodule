@@ -39,6 +39,8 @@
 - (void)updateQuad:(NSInteger)index tile:(QuickTiGame2dMapTile*)cctile;
 - (void)addTileToArray:(QuickTiGame2dMapTile*)tile array:(NSMutableArray*)array;
 - (void)updateTileProperty:(QuickTiGame2dMapTile*)tile;
+- (NSInteger)getChildTileRowCount:(QuickTiGame2dMapTile*)tile;
+- (BOOL)isHalfTile:(QuickTiGame2dMapTile*)tile;
 @end
 
 @interface QuickTiGame2dMapTile (PrivateMethods)
@@ -51,6 +53,7 @@
 @synthesize offsetX, offsetY, initialX, initialY, positionFixed;
 @synthesize image, index, suppressUpdate, isOverwrap, overwrapWidth, overwrapHeight;
 @synthesize overwrapAtlasX, overwrapAtlasY, isChild, parent;
+@synthesize rowCount, columnCount;
 
 -(id)init {
     self = [super init];
@@ -74,7 +77,7 @@
         initialY = 0;
         positionFixed = FALSE;
         index = 0;
-        parent = 0;
+        parent = -1;
         
         suppressUpdate = FALSE;
         isOverwrap     = FALSE;
@@ -83,6 +86,9 @@
         overwrapHeight = 0;
         overwrapAtlasX = 0;
         overwrapAtlasY = 0;
+        
+        rowCount = 0;
+        columnCount = 0;
     }
     return self;
 }
@@ -115,10 +121,21 @@
     overwrapAtlasY = other.overwrapAtlasY;
     isChild        = other.isChild;
     parent         = other.parent;
+    
+    rowCount    = other.rowCount;
+    columnCount = other.columnCount;
+}
+
+-(void)indexcc:(QuickTiGame2dMapTile*)other {
+    [self cc:other];
+    index = other.index;
 }
 
 -(NSString*)description {
-    return [NSString stringWithFormat:@"gid:%d, firstgid:%d size:%fx%f, initial:%fx%f atlas:%fx%f atlas size:%fx%f offset:%fx%f overwrap:%fx%f overwrap atlas:%fx%f", gid, firstgid, width, height, initialX, initialY, atlasX, atlasY, atlasWidth, atlasHeight, offsetX, offsetY, overwrapWidth, overwrapHeight, overwrapAtlasX, overwrapAtlasY]; 
+    return [NSString stringWithFormat:@"index:%d, gid:%d, firstgid:%d size:%fx%f, initial:%fx%f atlas:%fx%f atlas size:%fx%f offset:%fx%f overwrap:%fx%f overwrap atlas:%fx%f count:%dx%d, parent=%d, isChild=%@, flip=%@",
+            index, gid, firstgid, width, height, initialX, initialY, atlasX,
+            atlasY, atlasWidth, atlasHeight, offsetX, offsetY, overwrapWidth, overwrapHeight, overwrapAtlasX, overwrapAtlasY,
+            rowCount, columnCount, parent, isChild ? @"TRUE" : @"FALSE", flip ? @"TRUE" : @"FALSE"];
 }
 
 -(void)clearViewProperty:(QuickTiGame2dMapSprite*)map {
@@ -130,12 +147,16 @@
     flip  = FALSE;
     isOverwrap = FALSE;
     isChild    = FALSE;
-    parent     = 0;
+    parent     = -1;
+    suppressUpdate = FALSE;
     
     width   = map.tileWidth;
     height  = map.tileHeight;
     offsetX = map.tileOffsetX;
     offsetY = map.tileOffsetY;
+    
+    rowCount    = 0;
+    columnCount = 0;
 }
 @end
 
@@ -565,6 +586,29 @@
     return (NSInteger)(tile.width / tileWidth);
 }
 
+-(NSInteger)getTileRowCount:(QuickTiGame2dMapTile*)tile {
+    if (tile.rowCount <= 0) {
+        return [self getChildTileRowCount:tile];
+    } else {
+        return tile.rowCount;
+    }
+}
+
+-(NSInteger)getTileColumnCount:(QuickTiGame2dMapTile*)tile {
+    if (tile.columnCount <= 0) {
+        return [self getChildTileRowCount:tile];
+    } else {
+        return tile.columnCount;
+    }
+}
+
+-(BOOL)isHalfTile:(QuickTiGame2dMapTile*)tile {
+    NSInteger row    = [self getTileRowCount:tile];
+    NSInteger column = [self getTileColumnCount:tile];
+    
+    return (row > 1 || column > 1) && (row != column);
+}
+
 /*
  * check if this tile consists of multiple tiles
  * this assumes tile has same tile count for X&Y axis (2x2, 3x3, 4x4)
@@ -606,18 +650,69 @@
             tile.atlasY = [[prop objectForKey:@"atlasY"] floatValue];
             tile.atlasWidth  = [[prop objectForKey:@"atlasWidth"] floatValue];
             tile.atlasHeight = [[prop objectForKey:@"atlasHeight"] floatValue];
+            
+            tile.rowCount    = [[prop objectForKey:@"rowCount"] intValue];
+            tile.columnCount = [[prop objectForKey:@"columnCount"] intValue];
         }
     }
 }
 
--(void)setTile:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile {
+-(BOOL)isTileSpaceUsed:(QuickTiGame2dMapTile*)tile row:(NSInteger)row column:(NSInteger)column {
+    if (tile == nil) return FALSE;
+    
+    NSInteger targetColumn = tile.flip ? row : column;
+    NSInteger targetRow    = tile.flip ? column : row;
+    
+    if (tile.columnCount > 0 && tile.columnCount <= targetColumn) {
+        return FALSE;
+    }
+    if (tile.rowCount > 0 && tile.rowCount <= targetRow) {
+        return FALSE;
+    }
+    
+    return TRUE;
+}
+
+-(BOOL)canUpdate:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile {
+    if ([self getChildTileRowCount:tile] < 2) return TRUE;
+    
+    int rowCount    = tile.flip ? tile.columnCount : tile.rowCount;
+    int columnCount = tile.flip ? tile.rowCount : tile.columnCount;
+    
+    for (int row = 0; row < rowCount; row++) {
+        for (int column = 0; column < columnCount; column++) {
+            if (row == 0 && column == 0) continue;
+            
+            QuickTiGame2dMapTile* target = [self getTile:index + column + (row * tileCountX)];
+            if (target == nil) continue;
+            
+            if (target.isChild && target.parent != index) {
+                return FALSE;
+            } else if (target.gid > 0) {
+                return FALSE;
+            } else if ([self hasChild:target]) {
+                return FALSE;
+            }
+        }
+    }
+    
+    return TRUE;
+}
+
+-(BOOL)setTile:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile {
+    
     
     if ([self getTile:index].isChild) {
         NSLog(@"[DEBUG] Tile %d can not be replaced because it is part of multiple tiles.", index);
-        return;
+        return FALSE;
     }
     
     [self updateTileProperty:tile];
+    
+    if (![self canUpdate:index tile:tile]) {
+        NSLog(@"[DEBUG] Tile %d can not be replaced because another tile is found.", index);
+        return FALSE;
+    }
     
     // check if this tile consists of multiple tiles
     // this assumes tile has same tile count for X&Y axis (2x2, 3x3, 4x4)
@@ -643,6 +738,16 @@
                 neighbor.suppressUpdate = TRUE;
                 neighbor.alpha = 0;
                 neighbor.parent = index;
+                
+                if (![self isTileSpaceUsed:tile row:row column:column]) {
+                    // Clear neighboring tile that is not used
+                    if (target != nil && target.parent == index) {
+                        [neighbor clearViewProperty:self];
+                    } else {
+                        [neighbor release];
+                        continue;
+                    }
+                }
                 
                 @synchronized (updatedTiles) {
                     [updatedTiles setObject:neighbor forKey:[NSNumber numberWithInt:neighbor.index]];
@@ -687,6 +792,17 @@
             
             tile2.suppressUpdate = TRUE;
             
+            if (![self isTileSpaceUsed:tile row:i column:0]) {
+                if (target2.parent == index) {
+                    [tile2 clearViewProperty:self];
+                    tile2.alpha = 0;
+                    tile2.suppressUpdate = FALSE;
+                } else {
+                    [tile2 release];
+                    continue;
+                }
+            }
+            
             @synchronized (updatedTiles) {
                 [updatedTiles setObject:tile2 forKey:[NSNumber numberWithInt:tile2.index]];
             }
@@ -698,6 +814,8 @@
     @synchronized (updatedTiles) {
         [updatedTiles setObject:tile forKey:[NSNumber numberWithInt:index]];
     }
+    
+    return TRUE;
 }
 
 -(void)setTiles:(NSArray*)data {
@@ -742,9 +860,15 @@
     for (int row = 0; row < childRowCount; row++) {
         for (int column = 0; column < childRowCount; column++) {
             
-            QuickTiGame2dMapTile* tile2 = [self getTile:index + column + (row * tileCountX)];
+            QuickTiGame2dMapTile* target2 = [self getTile:index + column + (row * tileCountX)];
+            if (target2 == nil) continue;
             
-            if (tile2 == nil) continue;
+            if (target2.index != index && (!target2.isChild || target2.parent != index)) {
+                continue;
+            }
+            
+            QuickTiGame2dMapTile* tile2 = [[QuickTiGame2dMapTile alloc] init];
+            [tile2 indexcc:target2];
             
             [tile2 clearViewProperty:self];
             tile2.alpha  = 0;
@@ -752,6 +876,8 @@
             @synchronized (updatedTiles) {
                 [updatedTiles setObject:tile2 forKey:[NSNumber numberWithInt:tile2.index]];
             }
+            
+            [tile2 release];
         }
     }
     
@@ -993,6 +1119,14 @@
     [animation release];
     
     animating = TRUE;
+}
+
+-(float)defaultX:(QuickTiGame2dMapTile*)tile {
+    return self.x + tile.initialX * self.scaleX;
+}
+
+-(float)defaultY:(QuickTiGame2dMapTile*)tile {
+    return self.y + tile.initialY * self.scaleY;
 }
 
 -(float)screenX:(QuickTiGame2dMapTile*)tile {

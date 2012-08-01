@@ -64,6 +64,9 @@ public class QuickTiGame2dMapTile {
     public boolean isChild;
     public int parent;
     
+    public int rowCount;
+    public int columnCount;
+    
     public QuickTiGame2dMapTile() {
         gid   = 0;
         index = 0;
@@ -93,7 +96,10 @@ public class QuickTiGame2dMapTile {
         suppressUpdate = false;
         
         isChild = false;
-        parent  = 0;
+        parent  = -1;
+        
+        rowCount    = 0;
+        columnCount = 0;
     }
     
     public void cc(QuickTiGame2dMapTile other) {
@@ -124,12 +130,20 @@ public class QuickTiGame2dMapTile {
         suppressUpdate = other.suppressUpdate;
         isChild        = other.isChild;
         parent         = other.parent;
+        rowCount       = other.rowCount;
+        columnCount    = other.columnCount;
+    }
+    
+    public void indexcc(QuickTiGame2dMapTile other) {
+    	this.cc(other);
+    	index = other.index;
     }
     
     public String description() {
-        return String.format("gid:%d, firstgid:%d size:%fx%f, initial:%fx%f atlas:%fx%f atlas size:%fx%f offset:%fx%f overwrap:%fx%f overwrap atlas:%fx%f",
-        					gid, firstgid, width, height, initialX, initialY, atlasX, atlasY, atlasWidth, 
-        					atlasHeight, offsetX, offsetY, overwrapWidth, overwrapHeight, overwrapAtlasX, overwrapAtlasY); 
+        return String.format("index:%d, gid:%d, firstgid:%d size:%fx%f, initial:%fx%f atlas:%fx%f atlas size:%fx%f offset:%fx%f overwrap:%fx%f overwrap atlas:%fx%f count:%dx%d parent:%d isChild:%s flip:%s",
+        					index, gid, firstgid, width, height, initialX, initialY, atlasX, atlasY, atlasWidth, 
+        					atlasHeight, offsetX, offsetY, overwrapWidth, overwrapHeight, overwrapAtlasX, overwrapAtlasY,
+        					rowCount, columnCount, parent, isChild ? "TRUE" : "FALSE", flip ? "TRUE" : "FALSE"); 
     }
 
     public void clearViewProperty(QuickTiGame2dMapSprite map) {
@@ -141,12 +155,16 @@ public class QuickTiGame2dMapTile {
         flip  = false;
         isOverwrap = false;
         isChild = false;
-        parent = 0;
+        parent = -1;
+        suppressUpdate = false;
         
         width   = map.getTileWidth();
         height  = map.getTileHeight();
         offsetX = map.getTileOffsetX();
         offsetY = map.getTileOffsetY();
+        
+        rowCount = 0;
+        columnCount = 0;
     }
 
 }

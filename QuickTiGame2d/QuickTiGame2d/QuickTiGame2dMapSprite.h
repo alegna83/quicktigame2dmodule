@@ -81,7 +81,7 @@
 -(NSArray*)getTiles;
 -(QuickTiGame2dMapTile*)getTileAtPosition:(float)sx sy:(float)sy;
 -(QuickTiGame2dMapTile*)getTile:(NSInteger)index;
--(void)setTile:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile;
+-(BOOL)setTile:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile;
 -(void)setTiles:(NSArray*)data;
 -(BOOL)removeTile:(NSInteger)index;
 -(BOOL)flipTile:(NSInteger)index;
@@ -93,6 +93,9 @@
 -(void)animateTile:(NSInteger)tileIndex frames:(NSArray*)frames interval:(NSInteger)interval;
 -(void)animateTile:(NSInteger)tileIndex frames:(NSArray*)frames interval:(NSInteger)interval loop:(NSInteger)loop;
 
+-(float)defaultX:(QuickTiGame2dMapTile*)tile;
+-(float)defaultY:(QuickTiGame2dMapTile*)tile;
+
 -(float)screenX:(QuickTiGame2dMapTile*)tile;
 -(float)screenY:(QuickTiGame2dMapTile*)tile;
 
@@ -102,6 +105,10 @@
 -(float)scaledTileWidth:(QuickTiGame2dMapTile*)tile;
 -(float)scaledTileHeight:(QuickTiGame2dMapTile*)tile;
 
--(NSInteger)getChildTileRowCount:(QuickTiGame2dMapTile*)tile;
 -(BOOL)hasChild:(QuickTiGame2dMapTile*)tile;
+-(NSInteger)getTileRowCount:(QuickTiGame2dMapTile*)tile;
+-(NSInteger)getTileColumnCount:(QuickTiGame2dMapTile*)tile;
+
+- (BOOL)canUpdate:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile;
+
 @end

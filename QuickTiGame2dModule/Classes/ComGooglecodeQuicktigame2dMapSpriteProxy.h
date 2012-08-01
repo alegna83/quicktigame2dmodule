@@ -54,5 +54,6 @@
 -(id)flipTile:(id)args;
 -(void)animate:(id)args;
 -(void)stop:(id)args;
+-(id)canUpdate:(id)args;
 
 @end

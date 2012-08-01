@@ -90,11 +90,14 @@ public class MapSpriteProxy extends SpriteProxy {
 		info.put("flip",  Boolean.valueOf(tile.flip));
 		info.put("isChild",  Boolean.valueOf(tile.isChild));
 		info.put("hasChild", Boolean.valueOf(getMapSprite().hasChild(tile)));
-		info.put("rowCount", Integer.valueOf(getMapSprite().getChildTileRowCount(tile)));
+		info.put("rowCount", Integer.valueOf(getMapSprite().getTileRowCount(tile)));
+		info.put("columnCount", Integer.valueOf(getMapSprite().getTileColumnCount(tile)));
 		info.put("parent",   Integer.valueOf(tile.parent));
 		
-		info.put("screenX",  Double.valueOf(getMapSprite().getScreenX(tile)));
-		info.put("screenY",  Double.valueOf(getMapSprite().getScreenY(tile)));
+		info.put("x",  Double.valueOf(getMapSprite().getScreenX(tile)));
+		info.put("y",  Double.valueOf(getMapSprite().getScreenY(tile)));
+		info.put("defaultX",  Double.valueOf(getMapSprite().getDefaultX(tile)));
+		info.put("defaultY",  Double.valueOf(getMapSprite().getDefaultY(tile)));
 		info.put("width",    Double.valueOf(tile.width  > 0 ? 
 				getMapSprite().getScaledTileWidth(tile)  : getMapSprite().getScaledTileWidth()));
 		info.put("height",   Double.valueOf(tile.height > 0 ?
@@ -130,10 +133,32 @@ public class MapSpriteProxy extends SpriteProxy {
 		
 		return info;
 	}
+	
 	@Kroll.method
 	public boolean setTile(@SuppressWarnings("rawtypes") HashMap info) {
 		return updateTile(info);
 	}
+
+	@Kroll.method
+	public boolean canUpdate(@SuppressWarnings("rawtypes") HashMap info) {
+		int index = -1;
+		if (info.containsKey("index")) {
+			index = TiConvert.toInt(info.get("index"));
+		}
+		
+	    QuickTiGame2dMapTile target = getMapSprite().getTile(index);
+	    if (target == null) return false;
+	    
+	    QuickTiGame2dMapTile tile = new QuickTiGame2dMapTile();
+	    tile.indexcc(target);
+	    
+		if (info.containsKey("flip")) {
+			tile.flip = TiConvert.toBoolean(info.get("flip"));
+		}
+		
+		return getMapSprite().canUpdate(index, tile);
+	}
+	
 	
 	@Kroll.method
 	public boolean updateTile(@SuppressWarnings("rawtypes") HashMap info) {
@@ -163,7 +188,7 @@ public class MapSpriteProxy extends SpriteProxy {
 			alpha = (float)TiConvert.toDouble(info.get("alpha"));
 		}
 
-	    if (index >= getMapSprite().getTileCount()) {
+	    if (index < 0 || index >= getMapSprite().getTileCount()) {
 	        return false;
 	    }
 	    
@@ -184,9 +209,7 @@ public class MapSpriteProxy extends SpriteProxy {
 			tile.flip = TiConvert.toBoolean(info.get("flip"));
 		}
 	    
-	    getMapSprite().setTile(index, tile);
-	    
-	    return true;
+	    return getMapSprite().setTile(index, tile);
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -356,6 +379,8 @@ public class MapSpriteProxy extends SpriteProxy {
 			Map<String, String> param = new HashMap<String, String>();
 			param.put("offsetX", "0");
 			param.put("offsetY", "0");
+			param.put("rowCount", "0");
+			param.put("columnCount", "0");
 			
 			@SuppressWarnings("rawtypes")
 			Map info = (Map) args[i];
@@ -376,7 +401,9 @@ public class MapSpriteProxy extends SpriteProxy {
 						}
 					}
 				} else {
-					param.put(String.valueOf(key), String.valueOf(info.get(key)));
+					if (info.get(key) != null) {
+						param.put(String.valueOf(key), String.valueOf(info.get(key)));
+					}
 				}
 			}
 			

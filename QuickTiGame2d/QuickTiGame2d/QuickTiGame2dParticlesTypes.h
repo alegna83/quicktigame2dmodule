@@ -103,6 +103,9 @@ typedef struct {
     
     BOOL isChild;
     NSInteger parent;
+    
+    NSInteger rowCount;
+    NSInteger columnCount;
 }
 @property (readwrite, copy) NSString* image;
 @property (readwrite) NSInteger firstgid;
@@ -134,8 +137,11 @@ typedef struct {
 @property (readwrite) float overwrapHeight;
 @property (readwrite) float overwrapAtlasX;
 @property (readwrite) float overwrapAtlasY;
+@property (readwrite) NSInteger rowCount;
+@property (readwrite) NSInteger columnCount;
 
 -(void)cc:(QuickTiGame2dMapTile*)other;
+-(void)indexcc:(QuickTiGame2dMapTile*)other;
 @end
 
 #define MAXIMUM_UPDATE_RATE 60.0f	// The maximum number of updates that occur per frame

@@ -98,10 +98,13 @@
     [dic setValue:NUMBOOL(tile.flip)    forKey:@"flip"];
     [dic setValue:NUMBOOL(tile.isChild) forKey:@"isChild"];
     [dic setValue:NUMBOOL([mapSprite hasChild:tile]) forKey:@"hasChild"];
-    [dic setValue:NUMBOOL([mapSprite getChildTileRowCount:tile]) forKey:@"rowCount"];
+    [dic setValue:NUMBOOL([mapSprite getTileRowCount:tile]) forKey:@"rowCount"];
+    [dic setValue:NUMBOOL([mapSprite getTileColumnCount:tile]) forKey:@"columnCount"];
     [dic setValue:NUMINT(tile.parent)   forKey:@"parent"];
-    [dic setValue:NUMFLOAT([mapSprite screenX:tile]) forKey:@"screenX"];
-    [dic setValue:NUMFLOAT([mapSprite screenY:tile]) forKey:@"screenY"];
+    [dic setValue:NUMFLOAT([mapSprite screenX:tile]) forKey:@"x"];
+    [dic setValue:NUMFLOAT([mapSprite screenY:tile]) forKey:@"y"];
+    [dic setValue:NUMFLOAT([mapSprite defaultX:tile]) forKey:@"defaultX"];
+    [dic setValue:NUMFLOAT([mapSprite defaultY:tile]) forKey:@"defaultY"];
     
     [dic setValue:NUMFLOAT(tile.width  > 0 ? 
                            [mapSprite scaledTileWidth:tile]  : [mapSprite scaledTileWidth])
@@ -134,17 +137,35 @@
     return tileInfoCache;
 }
 
+-(id)canUpdate:(id)args {
+    ENSURE_SINGLE_ARG(args, NSDictionary);
+    
+    NSInteger index  = [TiUtils intValue:@"index"  properties:args def:-1];
+    
+    QuickTiGame2dMapTile* target = [((QuickTiGame2dMapSprite*)sprite) getTile:index];
+    if (target == nil) return NUMBOOL(TRUE);
+    
+    QuickTiGame2dMapTile* tile = [[[QuickTiGame2dMapTile alloc] init] autorelease];
+    [tile indexcc:target];
+    
+    if ([args objectForKey:@"flip"] != nil) {
+        tile.flip = [TiUtils boolValue:@"flip" properties:args def:tile.flip];
+    }
+
+    return NUMBOOL([(QuickTiGame2dMapSprite*)sprite canUpdate:index tile:tile]);
+}
+
 -(id)updateTile:(id)args {
     ENSURE_SINGLE_ARG(args, NSDictionary);
     
-    NSInteger index  = [TiUtils intValue:@"index"  properties:args  def:0];
+    NSInteger index  = [TiUtils intValue:@"index"  properties:args  def:-1];
     NSInteger gid    = [TiUtils intValue:@"gid"    properties:args  def:-1];
     float     red    = [TiUtils floatValue:@"red"    properties:args  def:-1];
     float     green  = [TiUtils floatValue:@"green"  properties:args  def:-1];
     float     blue   = [TiUtils floatValue:@"blue"   properties:args  def:-1];
     float     alpha  = [TiUtils floatValue:@"alpha"  properties:args  def:-1];
     
-    if (index >= ((QuickTiGame2dMapSprite*)sprite).tileCount) {
+    if (index < 0 || index >= ((QuickTiGame2dMapSprite*)sprite).tileCount) {
         return NUMBOOL(FALSE);
     }
     
@@ -165,11 +186,11 @@
         tile.flip = [TiUtils boolValue:@"flip"  properties:args def:FALSE];
     }
     
-    [((QuickTiGame2dMapSprite*)sprite) setTile:index tile:tile];
+    BOOL isUpdated = [((QuickTiGame2dMapSprite*)sprite) setTile:index tile:tile];
     
     [tile release];
     
-    return NUMBOOL(TRUE);
+    return NUMBOOL(isUpdated);
 }
 
 -(id)updateTiles:(id)args {
@@ -335,6 +356,9 @@
         
         [param setObject:@"0" forKey:@"offsetX"];
         [param setObject:@"0" forKey:@"offsetY"];
+        
+        [param setObject:@"0" forKey:@"rowCount"];
+        [param setObject:@"0" forKey:@"columnCount"];
         
         NSDictionary* info = [args objectAtIndex:i];
         for (id key in info) {
