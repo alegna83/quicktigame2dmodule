@@ -14,10 +14,12 @@
  *  limitations under the License.
  */
 
+#import "ComGooglecodeQuicktigame2dBox2dJointProxy.hh"
 #import "ComGooglecodeQuicktigame2dBox2dWorldProxy.hh"
 #import "ComGooglecodeQuicktigame2dBox2dRevJointProxy.hh"
 #import "ComGooglecodeQuicktigame2dBox2dRopeJointProxy.hh"
 #import "ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh"
+#import "ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh"
 #import "ComGooglecodeQuicktigame2dGameView.h"
 #import "ComGooglecodeQuicktigame2dWorldQueryCallback.h"
 
@@ -510,6 +512,43 @@
     return jp;
 }
 
+-(id)createWeldJoint:(id)args
+{
+    NSDictionary *props = [args count] > 2 ? [args objectAtIndex:2] : nil;
+    
+    [lock lock];
+    
+    ComGooglecodeQuicktigame2dBox2dBodyProxy *TiBody1 = [args objectAtIndex:0];
+    
+    b2Body *body1 = TiBody1.body;
+    
+    ComGooglecodeQuicktigame2dBox2dBodyProxy *TiBody2 = [args objectAtIndex:1];
+    
+    b2Body *body2 = TiBody2.body;
+    
+    b2WeldJointDef jointDef;
+    ComGooglecodeQuicktigame2dBox2dWeldJointProxy *jp = nil;
+    jointDef.collideConnected = [TiUtils boolValue:@"collideConnected" properties:props def:false];
+    jointDef.bodyA = body1;
+    jointDef.bodyB = body2;
+    //jointDef.maxForce = 16000.0f;
+    CGFloat height = [(ComGooglecodeQuicktigame2dGameView*)[surface view] gamebounds].size.height;
+    
+    //anchorXY is global world point on initialization
+    b2Vec2 anchor([TiUtils floatValue:@"anchorX" properties:props def:0.0f]/PTM_RATIO, (height - [TiUtils floatValue:@"anchorY" properties:props def:0.0f])/PTM_RATIO);
+    jointDef.Initialize(body1, body2, anchor);
+    
+    
+    b2WeldJoint *joint;
+    joint = (b2WeldJoint*)world->CreateJoint(&jointDef);
+    
+    jp = [[ComGooglecodeQuicktigame2dBox2dWeldJointProxy alloc] initWithJointAndHeight:joint,height];
+    
+    
+    [lock unlock];
+    return jp;
+}
+
 -(id)createRopeJoint:(id)args
 {
     NSDictionary *props = [args count] > 2 ? [args objectAtIndex:2] : nil;
@@ -573,8 +612,8 @@
 	if (world)
 	{
 		
-		int32 velocityIterations = 8;
-		int32 positionIterations = 8;
+		int32 velocityIterations = 10;
+		int32 positionIterations = 12;
 		
 		// Instruct the world to perform a single step of simulation. It is
 		// generally best to keep the time step and iterations fixed.

@@ -165,8 +165,10 @@
     
     ARRAY_B2VEC2(a1,force);
     ARRAY_B2VEC2(a2,point);
+    point.x /= PTM_RATIO;
+    point.y /= PTM_RATIO;
     
-    body->ApplyForce(force, point);
+    body->ApplyForce(force, body->GetWorldPoint(point));
 }
 
 //
@@ -181,8 +183,15 @@
     
     ARRAY_B2VEC2(a1,force);
     ARRAY_B2VEC2(a2,point);
+
+    point.x /= PTM_RATIO;
+    //reverse local coordinate before apply PRM_RATIO
+    float height = [(ComGooglecodeQuicktigame2dSpriteProxy*)viewproxy sprite].height;
+    point.y = height - point.y;
+    point.y /= PTM_RATIO;
     
-    body->ApplyLinearImpulse(force, point);
+    //apply to local point
+    body->ApplyLinearImpulse(force, body->GetWorldPoint(point));
 }
 
 //

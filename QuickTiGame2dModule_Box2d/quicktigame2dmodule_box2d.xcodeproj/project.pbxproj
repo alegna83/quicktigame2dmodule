@@ -22,6 +22,9 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		840190AF15CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh in Headers */ = {isa = PBXBuildFile; fileRef = 840190AD15CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh */; };
+		840190B015CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.mm in Sources */ = {isa = PBXBuildFile; fileRef = 840190AE15CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.mm */; };
+		840190B515CAB89D00A41435 /* ComGooglecodeQuicktigame2dBox2dJointProxy.hh in Headers */ = {isa = PBXBuildFile; fileRef = 840190B415CAB89D00A41435 /* ComGooglecodeQuicktigame2dBox2dJointProxy.hh */; };
 		840606AA1597B22200E53696 /* Box2D.h in Headers */ = {isa = PBXBuildFile; fileRef = 840606461597B22200E53696 /* Box2D.h */; };
 		840606AB1597B22200E53696 /* b2BroadPhase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8406064A1597B22200E53696 /* b2BroadPhase.cpp */; };
 		840606AC1597B22200E53696 /* b2BroadPhase.h in Headers */ = {isa = PBXBuildFile; fileRef = 8406064B1597B22200E53696 /* b2BroadPhase.h */; };
@@ -115,9 +118,6 @@
 		840607041597B22200E53696 /* b2Rope.h in Headers */ = {isa = PBXBuildFile; fileRef = 840606A91597B22200E53696 /* b2Rope.h */; };
 		840607101597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh in Headers */ = {isa = PBXBuildFile; fileRef = 8406070E1597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh */; };
 		840607111597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.mm in Sources */ = {isa = PBXBuildFile; fileRef = 8406070F1597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.mm */; };
-		84C4E03315A4B4A9006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.hh in Headers */ = {isa = PBXBuildFile; fileRef = 84C4E03215A4B4A9006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.hh */; };
-		84C4E03A15A4B519006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.mm in Sources */ = {isa = PBXBuildFile; fileRef = 84C4E03915A4B519006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.mm */; };
-		84E464C41598CE380053FE2C /* ComGooglecodeQuicktigame2dWorldQueryCallback.h in Headers */ = {isa = PBXBuildFile; fileRef = 84E464C31598CE380053FE2C /* ComGooglecodeQuicktigame2dWorldQueryCallback.h */; };
 		AA747D9F0F9514B9006C5449 /* ComGooglecodeQuicktigame2d_Prefix.pch in Headers */ = {isa = PBXBuildFile; fileRef = AA747D9E0F9514B9006C5449 /* ComGooglecodeQuicktigame2d_Prefix.pch */; };
 		AACBBE4A0F95108600F1A2B1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AACBBE490F95108600F1A2B1 /* Foundation.framework */; };
 		F92D86091540DDD500981B17 /* ArrayStackQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = F92D86071540DDD500981B17 /* ArrayStackQueue.h */; };
@@ -190,6 +190,9 @@
 
 /* Begin PBXFileReference section */
 		24DD6D1B1134B66800162E58 /* titanium.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = titanium.xcconfig; sourceTree = "<group>"; };
+		840190AD15CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh; path = Classes/ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh; sourceTree = "<group>"; };
+		840190AE15CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ComGooglecodeQuicktigame2dBox2dWeldJointProxy.mm; path = Classes/ComGooglecodeQuicktigame2dBox2dWeldJointProxy.mm; sourceTree = "<group>"; };
+		840190B415CAB89D00A41435 /* ComGooglecodeQuicktigame2dBox2dJointProxy.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ComGooglecodeQuicktigame2dBox2dJointProxy.hh; path = Classes/ComGooglecodeQuicktigame2dBox2dJointProxy.hh; sourceTree = "<group>"; };
 		840606461597B22200E53696 /* Box2D.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Box2D.h; sourceTree = "<group>"; };
 		840606471597B22200E53696 /* Box2DConfig.cmake */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Box2DConfig.cmake; sourceTree = "<group>"; };
 		840606481597B22200E53696 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
@@ -285,9 +288,6 @@
 		840606A91597B22200E53696 /* b2Rope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = b2Rope.h; sourceTree = "<group>"; };
 		8406070E1597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh; path = Classes/ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh; sourceTree = "<group>"; };
 		8406070F1597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ComGooglecodeQuicktigame2dBox2dMouseJointProxy.mm; path = Classes/ComGooglecodeQuicktigame2dBox2dMouseJointProxy.mm; sourceTree = "<group>"; };
-		84C4E03215A4B4A9006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ComGooglecodeQuicktigame2dBox2dRopeJointProxy.hh; sourceTree = "<group>"; };
-		84C4E03915A4B519006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ComGooglecodeQuicktigame2dBox2dRopeJointProxy.mm; sourceTree = "<group>"; };
-		84E464C31598CE380053FE2C /* ComGooglecodeQuicktigame2dWorldQueryCallback.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComGooglecodeQuicktigame2dWorldQueryCallback.h; sourceTree = "<group>"; };
 		AA747D9E0F9514B9006C5449 /* ComGooglecodeQuicktigame2d_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComGooglecodeQuicktigame2d_Prefix.pch; sourceTree = SOURCE_ROOT; };
 		AACBBE490F95108600F1A2B1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		D2AAC07E0554694100DB518D /* libComGooglecodeQuicktigame2d.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libComGooglecodeQuicktigame2d.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -643,14 +643,14 @@
 				F9E31C96153E25380037FCD3 /* ComGooglecodeQuicktigame2dBox2dBodyProxy.hh */,
 				F9E31C97153E25380037FCD3 /* ComGooglecodeQuicktigame2dBox2dBodyProxy.mm */,
 				8406070E1597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh */,
+				840190AD15CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh */,
+				840190AE15CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.mm */,
 				8406070F1597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.mm */,
+				840190B415CAB89D00A41435 /* ComGooglecodeQuicktigame2dBox2dJointProxy.hh */,
 				F9E31C98153E25380037FCD3 /* ComGooglecodeQuicktigame2dBox2dRevJointProxy.hh */,
-				84C4E03915A4B519006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.mm */,
-				84C4E03215A4B4A9006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.hh */,
 				F9E31C99153E25380037FCD3 /* ComGooglecodeQuicktigame2dBox2dRevJointProxy.mm */,
 				F9E31C9A153E25380037FCD3 /* ComGooglecodeQuicktigame2dBox2dWorldProxy.hh */,
 				F9E31C9B153E25380037FCD3 /* ComGooglecodeQuicktigame2dBox2dWorldProxy.mm */,
-				84E464C31598CE380053FE2C /* ComGooglecodeQuicktigame2dWorldQueryCallback.h */,
 				F9E31C9C153E25380037FCD3 /* TiContactListener.h */,
 				F9E31C9D153E25380037FCD3 /* TiContactListener.mm */,
 			);
@@ -741,8 +741,8 @@
 				840607021597B22200E53696 /* b2WheelJoint.h in Headers */,
 				840607041597B22200E53696 /* b2Rope.h in Headers */,
 				840607101597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.hh in Headers */,
-				84E464C41598CE380053FE2C /* ComGooglecodeQuicktigame2dWorldQueryCallback.h in Headers */,
-				84C4E03315A4B4A9006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.hh in Headers */,
+				840190AF15CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh in Headers */,
+				840190B515CAB89D00A41435 /* ComGooglecodeQuicktigame2dBox2dJointProxy.hh in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -886,7 +886,7 @@
 				840607011597B22200E53696 /* b2WheelJoint.cpp in Sources */,
 				840607031597B22200E53696 /* b2Rope.cpp in Sources */,
 				840607111597B2FB00E53696 /* ComGooglecodeQuicktigame2dBox2dMouseJointProxy.mm in Sources */,
-				84C4E03A15A4B519006E7DA6 /* ComGooglecodeQuicktigame2dBox2dRopeJointProxy.mm in Sources */,
+				840190B015CAB40800A41435 /* ComGooglecodeQuicktigame2dBox2dWeldJointProxy.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

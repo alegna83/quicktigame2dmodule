@@ -85,6 +85,15 @@
     [blue release];
     [alpha release];
     
+    [bezierCurvePoint1_X release];
+    [bezierCurvePoint1_Y release];
+    
+    [bezierCurvePoint2_X release];
+    [bezierCurvePoint2_Y release];
+    
+    [scale_centerX release];
+    [scale_centerY release];
+    
     [super dealloc];
 }
 
