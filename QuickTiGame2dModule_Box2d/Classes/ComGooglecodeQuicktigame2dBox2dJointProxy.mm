@@ -13,16 +13,16 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-#import "ComGooglecodeQuicktigame2dBox2dWeldJointProxy.hh"
+#import "ComGooglecodeQuicktigame2dBox2dJointProxy.hh"
 #import "ComGooglecodeQuicktigame2dGameView.h"
 #import "ComGooglecodeQuicktigame2dBox2dWorldProxy.hh"
 #import <Box2D/Box2D.h>
 
 #import "TiUtils.h"
 
-@implementation ComGooglecodeQuicktigame2dBox2dWeldJointProxy
+@implementation ComGooglecodeQuicktigame2dBox2dJointProxy
 
--(id)initWithJoint:(b2WeldJoint*)joint_
+-(id)initWithJoint:(b2Joint*)joint_
 {
     self = [super init];
     if (self != nil) {
@@ -31,7 +31,7 @@
     }
     return self;    
 }
--(id)initWithJointAndHeight:(b2WeldJoint*)joint_,CGFloat height_
+-(id)initWithJointAndHeight:(b2Joint*)joint_,CGFloat height_
 {
     self = [super init];
     if (self != nil) {

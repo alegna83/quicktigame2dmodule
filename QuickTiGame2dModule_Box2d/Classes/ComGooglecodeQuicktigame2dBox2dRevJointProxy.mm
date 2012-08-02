@@ -18,27 +18,6 @@
 
 @implementation ComGooglecodeQuicktigame2dBox2dRevJointProxy
 
--(id)initWithJoint:(b2RevoluteJoint*)joint_
-{
-    self = [super init];
-    if (self != nil) {
-		joint = joint_;
-        lock = [[NSRecursiveLock alloc] init];
-    }
-    return self;    
-}
-
--(void)dealloc
-{
-    RELEASE_TO_NIL(lock);
-	[super dealloc];
-}
-
--(b2Joint*)joint
-{
-    return joint;
-}
-
 -(void)setMotorSpeed:(id)args
 {
     [lock lock];
@@ -46,7 +25,7 @@
     ENSURE_SINGLE_ARG(args,NSNumber);
     
     CGFloat speed = [TiUtils floatValue:args];
-    joint->SetMotorSpeed(speed);
+    ((b2RevoluteJoint*)joint)->SetMotorSpeed(speed);
     
     [lock unlock];
 }
@@ -58,20 +37,20 @@
     ENSURE_SINGLE_ARG(args,NSNumber);
     
     CGFloat t = [TiUtils floatValue:args];
-    joint->SetMaxMotorTorque(t);
+    ((b2RevoluteJoint*)joint)->SetMaxMotorTorque(t);
     
     [lock unlock];
 }
 
 -(id)getJointAngle:(id)args
 {
-    float angle = joint->GetJointAngle();
+    float angle = ((b2RevoluteJoint*)joint)->GetJointAngle();
     return NUMFLOAT(angle);
 }
 
 -(id)getJointSpeed:(id)args
 {
-    float speed = joint->GetJointSpeed();
+    float speed = ((b2RevoluteJoint*)joint)->GetJointSpeed();
     return NUMFLOAT(speed);
 }
 

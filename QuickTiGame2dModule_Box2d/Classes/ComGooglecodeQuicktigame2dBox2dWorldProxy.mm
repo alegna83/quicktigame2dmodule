@@ -591,7 +591,7 @@
 
 -(void)destroyJoint:(id)joint
 {
-    ENSURE_SINGLE_ARG(joint, ComGooglecodeQuicktigame2dBox2dMouseJointProxy);
+    ENSURE_SINGLE_ARG(joint, ComGooglecodeQuicktigame2dBox2dJointProxy);
     [lock lock];
     if (world)
     {

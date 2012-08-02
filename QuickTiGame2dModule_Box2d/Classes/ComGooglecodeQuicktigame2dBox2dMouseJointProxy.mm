@@ -22,36 +22,6 @@
 
 @implementation ComGooglecodeQuicktigame2dBox2dMouseJointProxy
 
--(id)initWithJoint:(b2MouseJoint*)joint_
-{
-    self = [super init];
-    if (self != nil) {
-		joint = joint_;
-        lock = [[NSRecursiveLock alloc] init];
-    }
-    return self;    
-}
--(id)initWithJointAndHeight:(b2MouseJoint*)joint_,CGFloat height_
-{
-    self = [super init];
-    if (self != nil) {
-		joint = joint_;
-        lock = [[NSRecursiveLock alloc] init];
-        height = height_;
-    }
-    return self;    
-}
-
--(void)dealloc
-{
-    RELEASE_TO_NIL(lock);
-	[super dealloc];
-}
-
--(b2Joint*)joint
-{
-    return joint;
-}
 
 -(void)SetTarget:(id)args
 {    
@@ -65,7 +35,7 @@
     
     b2Vec2 moveToPosition = b2Vec2(posX, posY);
     
-    joint->SetTarget(moveToPosition);
+    ((b2MouseJoint*)joint)->SetTarget(moveToPosition);
     //NSLog(@"target set  %@, %@", posX, posY);
   //  [lock unlock];
 }

@@ -13,13 +13,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-#import "TiProxy.h"
+#import "ComGooglecodeQuicktigame2dBox2dJointProxy.hh"
 #import <Box2D/Box2D.h>
 
-@interface ComGooglecodeQuicktigame2dBox2dRevJointProxy : TiProxy {
-	b2RevoluteJoint *joint;
-    NSRecursiveLock *lock;
+@interface ComGooglecodeQuicktigame2dBox2dRevJointProxy : ComGooglecodeQuicktigame2dBox2dJointProxy {
     
 }
--(id)initWithJoint:(b2RevoluteJoint*)joint;
 @end

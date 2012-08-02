@@ -13,16 +13,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-#import "TiProxy.h"
+#import "ComGooglecodeQuicktigame2dBox2dJointProxy.hh"
 #import <Box2D/Box2D.h>
 
-@interface ComGooglecodeQuicktigame2dBox2dMouseJointProxy : TiProxy {
-	b2MouseJoint *joint;
-    NSRecursiveLock *lock;
-    CGFloat height;
-    
+@interface ComGooglecodeQuicktigame2dBox2dMouseJointProxy : ComGooglecodeQuicktigame2dBox2dJointProxy {
 }
--(id)initWithJoint:(b2MouseJoint*)joint;
--(id)initWithJointAndHeight:(b2MouseJoint*)joint,CGFloat height;
--(b2Joint*)joint;
+-(void)SetTarget:(id)args;
 @end
