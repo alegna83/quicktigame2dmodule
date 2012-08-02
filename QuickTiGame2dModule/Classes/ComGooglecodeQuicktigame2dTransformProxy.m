@@ -50,7 +50,8 @@
 }
 
 - (void)dealloc {
-    [[QuickTiGame2dEngine sharedNotificationCenter] removeObserver:self];
+    [[QuickTiGame2dEngine sharedNotificationCenter] removeObserver:self name:@"onStartTransform" object:transform];
+    [[QuickTiGame2dEngine sharedNotificationCenter] removeObserver:self name:@"onCompleteTransform" object:transform];
 
     RELEASE_TO_NIL(notificationEventCache);
     RELEASE_TO_NIL(bezierConfigCache);
