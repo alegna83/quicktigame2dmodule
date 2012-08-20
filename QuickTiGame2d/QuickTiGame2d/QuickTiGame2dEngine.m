@@ -409,11 +409,16 @@ typedef void (^CommandBlock)(void);
     [QuickTiGame2dEngine restoreGLState:TRUE];
     
     [self loadSquareVBOPointer];
-
-    if ([snapshotTexture onLoadSnapshot:framebufferWidth height:framebufferHeight]) {
-        [textureCache setObject:snapshotTexture forKey:snapshotTexture.name];
+    @synchronized(textureCache) {
+        if ([snapshotTexture onLoadSnapshot:framebufferWidth height:framebufferHeight]) {
+            QuickTiGame2dTexture* texture = [textureCache objectForKey:snapshotTexture.name];
+            if (texture != nil) {
+                [texture onDispose];
+                [textureCache removeObjectForKey:snapshotTexture.name];
+            }
+            [textureCache setObject:snapshotTexture forKey:snapshotTexture.name];
+        }
     }
-    
     [self fireOnLoadEvent];
     
     [QuickTiGame2dEngine restoreGLState:FALSE];
