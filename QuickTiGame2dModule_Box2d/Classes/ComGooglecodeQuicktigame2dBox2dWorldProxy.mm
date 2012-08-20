@@ -591,11 +591,12 @@
 
 -(void)destroyJoint:(id)joint
 {
-    ENSURE_SINGLE_ARG(joint, ComGooglecodeQuicktigame2dBox2dJointProxy);
+//    ENSURE_SINGLE_ARG(joint, ComGooglecodeQuicktigame2dBox2dJointProxy);
+    ComGooglecodeQuicktigame2dBox2dJointProxy* jp = (ComGooglecodeQuicktigame2dBox2dJointProxy*)[joint objectAtIndex:0];
     [lock lock];
     if (world)
     {
-        world->DestroyJoint([joint joint]);
+        world->DestroyJoint([jp joint]);
     }
     [lock unlock];
 }
