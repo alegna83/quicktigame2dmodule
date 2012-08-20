@@ -49,7 +49,7 @@
 
 -(void)reload;
 -(void)onLoad;
--(void)drawFrame;
+-(void)drawFrame:(QuickTiGame2dEngine*)engine;
 -(void)onDispose;
 
 @end

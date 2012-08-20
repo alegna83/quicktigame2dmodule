@@ -12,7 +12,7 @@
 
 ```
 <modules>
-  <module version="1.2">com.googlecode.quicktigame2d</module>
+  <module version="1.3">com.googlecode.quicktigame2d</module>
 </modules>
 ```
 

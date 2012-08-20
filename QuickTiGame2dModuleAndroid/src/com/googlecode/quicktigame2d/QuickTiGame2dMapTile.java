@@ -79,7 +79,7 @@ public class QuickTiGame2dMapTile {
         height = 0;
         atlasX = 0;
         atlasY = 0;
-        firstgid = 0;
+        firstgid = 1;
         atlasWidth  = 0;
         atlasHeight = 0;
         offsetX = 0;

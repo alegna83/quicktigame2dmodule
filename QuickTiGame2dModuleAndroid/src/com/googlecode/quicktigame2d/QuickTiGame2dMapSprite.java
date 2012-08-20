@@ -40,6 +40,7 @@ import javax.microedition.khronos.opengles.GL11;
 import org.appcelerator.kroll.common.Log;
 
 import com.googlecode.quicktigame2d.opengl.GLHelper;
+import com.googlecode.quicktigame2d.util.RunnableGL;
 
 public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
     private float[] quads;
@@ -71,24 +72,48 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
     
     private Map<String, Map<String, String>> tilesets = new HashMap<String, Map<String, String>>();
     private List<Map<String, String>> tilesetgids = new ArrayList<Map<String, String>>();
+    private Map<Integer, Map<String, String>> gidproperties = new HashMap<Integer, Map<String, String>>();
+    
+    private boolean isTopLayer = false;
+    private boolean isSubLayer = false;
+    
+    private boolean useFixedTileCount = false;
     
     public QuickTiGame2dMapSprite() {
-		firstgid = 0;
+		firstgid = 1;
+		verticesID[0] = 0;
 	}
     
+    public Map<String, String> getGIDProperties(int gid) {
+    	return gidproperties.get(Integer.valueOf(gid));
+    }
+    
     public boolean updateTileCount() {
-        if (width == 0 || height == 0 || tileWidth == 0 || tileHeight == 0) return false;
+        if (tileWidth == 0 || tileHeight == 0) return false;
         
-	    if (orientation != QuickTiGame2dConstant.MAP_ORIENTATION_HEXAGONAL) {
-	    	tileCountX = (int)Math.ceil(width / tileWidth);
-	    	tileCountY = (int)Math.ceil(height / tileHeight);
-	    	tileCount  = tileCountX * tileCountY;
-	    } else {
-	        tileCountX = (int)Math.ceil(width / tileWidth);
-	        tileCountY = (int)Math.ceil(height / (tileHeight * tileTiltFactorY));
+        if (useFixedTileCount) {
+            tileCount  = tileCountX * tileCountY;
+            
+            if (orientation == QuickTiGame2dConstant.MAP_ORIENTATION_ISOMETRIC) {
+            	this.width  = (int)(tileWidth  * tileCountX * tileTiltFactorX * 2);
+            	this.height = (int)(this.width * 0.5f);
+            } else {
+            	this.width  = (int)(tileWidth  * tileCountX * tileTiltFactorX);
+            	this.height = (int)(tileHeight * tileCountY * tileTiltFactorY);
+            }
+            
+        } else {
+        	if (orientation != QuickTiGame2dConstant.MAP_ORIENTATION_HEXAGONAL) {
+        		tileCountX = (int)Math.ceil(width  / (tileWidth  * tileTiltFactorX));
+        		tileCountY = (int)Math.ceil(height / (tileHeight * tileTiltFactorY));
+        		tileCount  = tileCountX * tileCountY;
+        	} else {
+        		tileCountX = (int)Math.ceil(width  / (tileWidth  * tileTiltFactorX));
+        		tileCountY = (int)Math.ceil(height / (tileHeight * tileTiltFactorY));
 	        
-	        tileCount = (tileCountX * tileCountY) - (tileCountY / 2);
-	    }
+        		tileCount = (tileCountX * tileCountY) - (tileCountY / 2);
+        	}
+        }
 	    return true;
     }
     
@@ -105,23 +130,46 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    	createQuadBuffer(gl);
 	    }
 	}
+    
+    private void reloadQuadBuffer() {
+    	beforeCommandQueue.offer(new RunnableGL() {
+    		@Override
+    		public void run(GL10 gl) {
+    		    if (updateTileCount()) {
+    		    	createQuadBuffer(gl);
+    		    }
+    		}
+    	});
+    }
+    
+    private boolean useLayeredMap() {
+    	return isTopLayer || isSubLayer;
+    }
 
     @Override
 	public void onDrawFrame(GL10 gl10) {
 		GL11 gl = (GL11)gl10;
 
+		while(!beforeCommandQueue.isEmpty()) {
+			beforeCommandQueue.poll().run(gl);
+		}
+		
+	    //
+	    // synchronize child layers position & scale
+	    //
+		synchronized (children) {
+			for (QuickTiGame2dSprite child : children) {
+				child.setX(getX());
+				child.setY(getY());
+				child.setScaleX(getScaleX());
+				child.setScaleY(getScaleY());
+				child.setScaleCenterX(getScaleCenterX());
+				child.setScaleCenterY(getScaleCenterY());
+			}
+		}
+		
 	    synchronized (transforms) {
 			onTransform();
-	    }
-	    
-	    synchronized (updatedTiles) {
-	        tileChanged = updatedTiles.size() > 0;
-	        if (tileChanged) {
-	            for (Map.Entry<Integer, QuickTiGame2dMapTile> e : updatedTiles.entrySet()) {
-	                updateQuad(e.getKey().intValue(), e.getValue());
-	            }
-	            updatedTiles.clear();
-	        }
 	    }
 	    
 	    synchronized (animations) {
@@ -142,6 +190,30 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 					animation.setLastOnAnimationInterval(uptime);
 				}
 			}
+	    }
+	    
+	    synchronized (updatedTiles) {
+	        tileChanged = updatedTiles.size() > 0;
+	        if (tileChanged) {
+	            for (Map.Entry<Integer, QuickTiGame2dMapTile> e : updatedTiles.entrySet()) {
+	                updateQuad(e.getKey().intValue(), e.getValue());
+	            }
+	            updatedTiles.clear();
+	        }
+	    }
+	    
+	    if (useLayeredMap()) {
+	    	view.get().updateOrthoViewport(gl);
+	    	
+	    	gl.glDepthFunc(GL10.GL_LEQUAL);
+	    	gl.glEnable(GL10.GL_DEPTH_TEST);
+	    	
+	        // Cut off alpha of sub layer to blend with top layer
+	        // sublayer should not use half-translucent alpha
+	        if (isSubLayer) {
+	            gl.glEnable(GL10.GL_ALPHA_TEST);
+	            gl.glAlphaFunc(GL10.GL_GREATER, 0.5f);
+	        }
 	    }
 		
 	    gl.glMatrixMode(GL11.GL_MODELVIEW);
@@ -178,14 +250,14 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    if (tileChanged) {
 		    quadsBuffer.put(quads);
 		    quadsBuffer.position(0);
-			gl.glBufferData(GL11.GL_ARRAY_BUFFER, 128 * tileCount, quadsBuffer, GL11.GL_STATIC_DRAW);
+			gl.glBufferData(GL11.GL_ARRAY_BUFFER, 144 * tileCount, quadsBuffer, GL11.GL_STATIC_DRAW);
 	    	tileChanged = false;
 	    }
 	    
 		// Configure the vertex pointer which will use the currently bound VBO for its data
-	    gl.glVertexPointer(2, GL11.GL_FLOAT, 32, 0);
-	    gl.glColorPointer(4, GL11.GL_FLOAT,  32,   (4 * 4));
-	    gl.glTexCoordPointer(2, GL11.GL_FLOAT, 32, (4 * 2));
+	    gl.glVertexPointer(3, GL11.GL_FLOAT, 36, 0);
+	    gl.glColorPointer(4, GL11.GL_FLOAT,  36,   (4 * 5));
+	    gl.glTexCoordPointer(2, GL11.GL_FLOAT, 36, (4 * 3));
 
 		if (hasTexture) {
 			gl.glEnable(GL11.GL_TEXTURE_2D);
@@ -198,12 +270,37 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    
 		gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);
 		gl.glBlendFunc(GL11.GL_ONE, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		
+		if (useLayeredMap()) {
+			gl.glDisable(GL10.GL_ALPHA_TEST);
+			gl.glDisable(GL10.GL_DEPTH_TEST);
+			gl.glDepthFunc(GL10.GL_LESS);
+			
+			view.get().forceUpdateViewport(gl);
+		}
 	    
 		gl.glDisableClientState(GL11.GL_COLOR_ARRAY);
+		
+		while(beforeCommandQueue.isEmpty() && !afterCommandQueue.isEmpty()) {
+			afterCommandQueue.poll().run(gl);
+		}
 	}
 
     @Override
 	public void onDispose() {
+    	quads = new float[0];
+    	indices = new short[0];
+
+    	tiles.clear();
+    	updatedTiles.clear();
+
+    	quadsBuffer = null;
+    	indicesBuffer = null;
+
+    	tilesets.clear();
+    	tilesetgids.clear();
+    	gidproperties.clear();
+    	
 		super.onDispose();
 	}
 
@@ -222,10 +319,11 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    
 		GL11 gl = (GL11)gl10;
 		
-	    quads     = new float[32 * tileCount];
+	    quads     = new float[36 * tileCount];
 	    indices   = new short[tileCount * 6];
 	    
 	    tiles.clear();
+	    updatedTiles.clear();
 	    
 	    for( int i = 0; i < tileCount; i++) {
 			indices[i * 6 + 0] = (short) (i * 4 + 0);
@@ -250,7 +348,7 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    int index = 0;
 	    for(int ty = 0; ty < tileCountY; ty++) {
 	        for (int tx = 0; tx < tileCountX; tx++) {
-	            int vi = index * 32;
+	            int vi = index * 36;
 	            
 	            if (orientation == QuickTiGame2dConstant.MAP_ORIENTATION_ISOMETRIC) {
 	            	float iso_startX = (tx * tileTiltFactorX  * tileWidth)  - (ty * tileTiltFactorX  * tileWidth);
@@ -258,18 +356,22 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 
 	            	quads[vi + 0] = iso_startX;  // vertex  x
 	            	quads[vi + 1] = iso_startY;  // vertex  y
+	            	quads[vi + 2] = 0;           // vertex  z
 
 	            	// -----------------------------
-	            	quads[vi + 8] = iso_startX;              // vertex  x
-	            	quads[vi + 9] = iso_startY + tileHeight; // vertex  y
+	            	quads[vi + 9] = iso_startX;               // vertex  x
+	            	quads[vi + 10] = iso_startY + tileHeight; // vertex  y
+	            	quads[vi + 11] = 0;                       // vertex  z
 
 	            	// -----------------------------
-	            	quads[vi + 16] = iso_startX + tileWidth; // vertex  x
-	            	quads[vi + 17] = iso_startY + tileHeight; // vertex  y
+	            	quads[vi + 18] = iso_startX + tileWidth;  // vertex  x
+	            	quads[vi + 19] = iso_startY + tileHeight; // vertex  y
+	            	quads[vi + 20] = 0;                       // vertex  z
 
 	            	// -----------------------------
-	            	quads[vi + 24] = iso_startX + tileWidth; // vertex  x
-	            	quads[vi + 25] = iso_startY;             // vertex  y
+	            	quads[vi + 27] = iso_startX + tileWidth; // vertex  x
+	            	quads[vi + 28] = iso_startY;             // vertex  y
+	            	quads[vi + 29] = 0;                      // vertex  z
 	            	
 	            } else if (orientation == QuickTiGame2dConstant.MAP_ORIENTATION_HEXAGONAL) {
 	                if (ty % 2 == 1 && tx >= tileCountX - 1) {
@@ -282,34 +384,42 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	                
 	                quads[vi + 0] = hex_startX;  // vertex  x
 	                quads[vi + 1] = hex_startY;  // vertex  y
+	            	quads[vi + 2] = 0;           // vertex  z
 	                
 	                // -----------------------------
-	                quads[vi + 8] = hex_startX;              // vertex  x
-	                quads[vi + 9] = hex_startY + tileHeight; // vertex  y
+	                quads[vi + 9] = hex_startX;               // vertex  x
+	                quads[vi + 10] = hex_startY + tileHeight; // vertex  y
+	            	quads[vi + 11] = 0;                       // vertex  z
 	                
 	                // -----------------------------
-	                quads[vi + 16] = hex_startX + tileWidth; // vertex  x
-	                quads[vi + 17] = hex_startY + tileHeight; // vertex  y
+	                quads[vi + 18] = hex_startX + tileWidth;  // vertex  x
+	                quads[vi + 19] = hex_startY + tileHeight; // vertex  y
+	            	quads[vi + 20] = 0;                       // vertex  z
 	                
 	                // -----------------------------
-	                quads[vi + 24] = hex_startX + tileWidth; // vertex  x
-	                quads[vi + 25] = hex_startY;             // vertex  y
+	                quads[vi + 27] = hex_startX + tileWidth; // vertex  x
+	                quads[vi + 28] = hex_startY;             // vertex  y
+	            	quads[vi + 29] = 0;                      // vertex  z
 	            	
 	            } else {
 	            	quads[vi + 0] = tx * tileWidth;  // vertex  x
 	            	quads[vi + 1] = ty * tileHeight; // vertex  y
+	            	quads[vi + 2] = 0;               // vertex  z
 
 	            	// -----------------------------
-	            	quads[vi + 8] = (tx * tileWidth); // vertex  x
-	            	quads[vi + 9] = (ty * tileHeight) + tileHeight; // vertex  y
+	            	quads[vi + 9]  = (tx * tileWidth);               // vertex  x
+	            	quads[vi + 10] = (ty * tileHeight) + tileHeight; // vertex  y
+	            	quads[vi + 11] = 0;                              // vertex  z
 
 	            	// -----------------------------
-	            	quads[vi + 16] = (tx * tileWidth)  + tileWidth;  // vertex  x
-	            	quads[vi + 17] = (ty * tileHeight) + tileHeight; // vertex  y
+	            	quads[vi + 18] = (tx * tileWidth)  + tileWidth;  // vertex  x
+	            	quads[vi + 19] = (ty * tileHeight) + tileHeight; // vertex  y
+	            	quads[vi + 20] = 0;                              // vertex  z
 
 	            	// -----------------------------
-	            	quads[vi + 24] = (tx * tileWidth) + tileWidth;  // vertex  x
-	            	quads[vi + 25] = (ty * tileHeight);  // vertex  y
+	            	quads[vi + 27] = (tx * tileWidth) + tileWidth;  // vertex  x
+	            	quads[vi + 28] = (ty * tileHeight);             // vertex  y
+	            	quads[vi + 29] = 0;                             // vertex  z
 	            }
 	            index++;
 	        }
@@ -319,16 +429,22 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    indicesBuffer = GLHelper.createShortBuffer(indices);
 
 	    // Generate the vertices VBO
-		gl.glGenBuffers(1, verticesID, 0);
+	    if (verticesID[0] == 0) {
+	    	gl.glGenBuffers(1, verticesID, 0);
+	    }
 		gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, verticesID[0]);
-		gl.glBufferData(GL11.GL_ARRAY_BUFFER, 128 * tileCount, quadsBuffer, GL11.GL_STATIC_DRAW);
+		gl.glBufferData(GL11.GL_ARRAY_BUFFER, 144 * tileCount, quadsBuffer, GL11.GL_STATIC_DRAW);
 		gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);
+	}
+	
+	private int getTileNumber(QuickTiGame2dMapTile tile) {
+		return tile.gid - tile.firstgid - (this.firstgid - 1);
 	}
 
 	private float tex_coord_startX(QuickTiGame2dMapTile tile) {
-		int tileNo = tile.gid - tile.firstgid;
+		int tileNo = getTileNumber(tile);
 		
-		if (tilesets.size() > 1) {
+		if (tilesets.size() > 0) {
 	        float awidth = tile.atlasWidth > 0 ? tile.atlasWidth : width;
 	        float twidth = tile.isOverwrap ? tile.overwrapWidth : tile.width > 0 ? tile.width : tileWidth;
 	        
@@ -349,7 +465,7 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	}
 
 	private float tex_coord_startY(QuickTiGame2dMapTile tile) {
-	    int tileNo = tile.gid - tile.firstgid;
+	    int tileNo = getTileNumber(tile);
 	    
 		if (tilesets.size() > 1) {
 	        float awidth  = tile.atlasWidth  > 0 ? tile.atlasWidth  : width;
@@ -394,50 +510,49 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	private void updateQuad(int index, QuickTiGame2dMapTile cctile) {
 	    if (index >= tiles.size()) return;
 	    
-	    int vi = index * 32;
+	    int vi = index * 36;
 	    QuickTiGame2dMapTile tile = tiles.get(index);
 	    tile.cc(cctile);
 	    
-	    if (tile.gid - tile.firstgid < 0) tile.alpha = 0;
+	    if (getTileNumber(tile) < 0) tile.alpha = 0;
 	    
 	    float parentAlpha =  getAlpha();
 	    
-	    quads[vi + 2] = tile.flip? tileCoordEndX(tile) : tileCoordStartX(tile); // texture x
-	    quads[vi + 3] = tileCoordEndY(tile);  // texture y
+	    quads[vi + 3] = tile.flip? tileCoordEndX(tile) : tileCoordStartX(tile); // texture x
+	    quads[vi + 4] = tileCoordEndY(tile);  // texture y
 	    
-	    quads[vi + 4] = tile.red * tile.alpha * parentAlpha;   // red
-	    quads[vi + 5] = tile.green * tile.alpha * parentAlpha; // green
-	    quads[vi + 6] = tile.blue * tile.alpha * parentAlpha;  // blue
-	    quads[vi + 7] = tile.alpha * parentAlpha; // alpha
-	    
-	    // -----------------------------
-	    quads[vi + 10] = tile.flip? tileCoordEndX(tile) : tileCoordStartX(tile);
-	    quads[vi + 11] = tileCoordStartY(tile);
-	    
-	    quads[vi + 12] = tile.red * tile.alpha * parentAlpha;   // red
-	    quads[vi + 13] = tile.green * tile.alpha * parentAlpha; // green
-	    quads[vi + 14] = tile.blue * tile.alpha * parentAlpha;  // blue
-	    quads[vi + 15] = tile.alpha * parentAlpha; // alpha
+	    quads[vi + 5] = tile.red * tile.alpha * parentAlpha;   // red
+	    quads[vi + 6] = tile.green * tile.alpha * parentAlpha; // green
+	    quads[vi + 7] = tile.blue * tile.alpha * parentAlpha;  // blue
+	    quads[vi + 8] = tile.alpha * parentAlpha; // alpha
 	    
 	    // -----------------------------
-	    quads[vi + 18] = tile.flip ? tileCoordStartX(tile) : tileCoordEndX(tile);
-	    quads[vi + 19] = tileCoordStartY(tile);
+	    quads[vi + 12] = tile.flip? tileCoordEndX(tile) : tileCoordStartX(tile);
+	    quads[vi + 13] = tileCoordStartY(tile);
 	    
-	    quads[vi + 20] = tile.red * tile.alpha * parentAlpha;   // red
-	    quads[vi + 21] = tile.green * tile.alpha * parentAlpha; // green
-	    quads[vi + 22] = tile.blue * tile.alpha * parentAlpha;  // blue
-	    quads[vi + 23] = tile.alpha * parentAlpha; // alpha
+	    quads[vi + 14] = tile.red * tile.alpha * parentAlpha;   // red
+	    quads[vi + 15] = tile.green * tile.alpha * parentAlpha; // green
+	    quads[vi + 16] = tile.blue * tile.alpha * parentAlpha;  // blue
+	    quads[vi + 17] = tile.alpha * parentAlpha; // alpha
+	    
+	    // -----------------------------
+	    quads[vi + 21] = tile.flip ? tileCoordStartX(tile) : tileCoordEndX(tile);
+	    quads[vi + 22] = tileCoordStartY(tile);
+	    
+	    quads[vi + 23] = tile.red * tile.alpha * parentAlpha;   // red
+	    quads[vi + 24] = tile.green * tile.alpha * parentAlpha; // green
+	    quads[vi + 25] = tile.blue * tile.alpha * parentAlpha;  // blue
+	    quads[vi + 26] = tile.alpha * parentAlpha; // alpha
 	    
 	    // -----------------------------
 	    
-	    quads[vi + 26] = tile.flip ? tileCoordStartX(tile) : tileCoordEndX(tile);
-	    quads[vi + 27] = tileCoordEndY(tile);
+	    quads[vi + 30] = tile.flip ? tileCoordStartX(tile) : tileCoordEndX(tile);
+	    quads[vi + 31] = tileCoordEndY(tile);
 	    
-	    quads[vi + 28] = tile.red * tile.alpha * parentAlpha;   // red
-	    quads[vi + 29] = tile.green * tile.alpha * parentAlpha; // green
-	    quads[vi + 30] = tile.blue * tile.alpha * parentAlpha;  // blue
-	    quads[vi + 31] = tile.alpha * parentAlpha; // alpha
-	    
+	    quads[vi + 32] = tile.red * tile.alpha * parentAlpha;   // red
+	    quads[vi + 33] = tile.green * tile.alpha * parentAlpha; // green
+	    quads[vi + 34] = tile.blue * tile.alpha * parentAlpha;  // blue
+	    quads[vi + 35] = tile.alpha * parentAlpha; // alpha
 	    
 	    if (tile.width > 0 && tile.height > 0) {
 	        
@@ -447,21 +562,25 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	            tile.positionFixed = true;
 	        }
 	        
+	        float tilez = !useLayeredMap() ? 0 : tile.alpha > 0 ? index : -1;
+	        
 	        quads[vi + 0] = tile.initialX + tile.offsetX;  // vertex  x
 	        quads[vi + 1] = tile.initialY + tile.offsetY;  // vertex  y
+        	quads[vi + 2] = tilez;                         // vertex  z
 	            
-	        quads[vi + 8]  = tile.initialX + tile.offsetX; // vertex  x
-	        quads[vi + 25] = tile.initialY + tile.offsetY; // vertex  y
-	        // -----------------------------
-	        
-	        quads[vi + 9]  = quads[vi + 1] + tile.height; // vertex  y
+	        quads[vi + 9]  = tile.initialX + tile.offsetX; // vertex  x
+	        quads[vi + 10] = quads[vi + 1] + tile.height;  // vertex  y
+        	quads[vi + 11] = tilez;                        // vertex  z
 	        
 	        // -----------------------------
-	        quads[vi + 16] = quads[vi + 0] + tile.width;  // vertex  x
-	        quads[vi + 17] = quads[vi + 1] + tile.height; // vertex  y
+	        quads[vi + 18] = quads[vi + 0] + tile.width;  // vertex  x
+	        quads[vi + 19] = quads[vi + 1] + tile.height; // vertex  y
+        	quads[vi + 20] = tilez;                       // vertex  z
 	        
 	        // -----------------------------
-	        quads[vi + 24] = quads[vi + 0] + tile.width;  // vertex  x
+	        quads[vi + 27] = quads[vi + 0] + tile.width;   // vertex  x
+	        quads[vi + 28] = tile.initialY + tile.offsetY; // vertex  y
+        	quads[vi + 29] = tilez;                        // vertex  z
 	    }
 	    
 	}
@@ -498,10 +617,15 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	public boolean hasChild(QuickTiGame2dMapTile tile) {
 		return getChildTileRowCount(tile) > 1;
 	}
+	
+	public void updateGIDProperties(Map<String, Map<String, String>> info, int firstgid) {
+		for (String key : info.keySet()) {
+			int gid = firstgid + Integer.parseInt(key);
+			gidproperties.put(Integer.valueOf(gid), info.get(key));
+		}
+	}
 
 	private QuickTiGame2dMapTile updateTileProperty(QuickTiGame2dMapTile tile) {
-	    tile.firstgid = firstgid;
-        
 	    // Update tile properties if we found multiple tilesets
 	    if (tilesets.size() > 1) {
 	    	if (tile.gid <= 0) {
@@ -554,8 +678,12 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	            QuickTiGame2dMapTile target = getTile(index + column + (row * tileCountX));
 	            if (target == null) continue;
 	            
-	            if (target.isChild && target.parent != index) {
-	                return false;
+	            if (target.isChild) {
+	            	if (target.parent == index) {
+	            		continue;
+	            	} else {
+	            		return false;
+	            	}
 	            } else if (target.gid > 0) {
 	                return false;
 	            } else if (hasChild(target)) {
@@ -598,15 +726,16 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	                
 	                if (target2 != null) {
 	                    neighbor.cc(target2);
-	                } else {
-	                    neighbor = updateTileProperty(neighbor);
 	                }
+	                
+                    neighbor = updateTileProperty(neighbor);
 	                
 	                neighbor.index = index2;
 	                neighbor.isChild = true;
 	                neighbor.suppressUpdate = true;
 	                neighbor.alpha = 0;
 	                neighbor.parent = index;
+	                neighbor.gid = tile.gid;
 	                
 	                if (!isTileSpaceUsed(tile, row, column)) {
 		                // Clear neighboring tile that is not used
@@ -683,22 +812,30 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    return true;
 	}
 
-	public void setTiles(List<Integer> data) {
-	    for (int i = 0; i < data.size(); i++) {
-	    	
-	    	QuickTiGame2dMapTile overwrap = updatedTiles.get(Integer.valueOf(i));
-	    	if (overwrap != null && overwrap.suppressUpdate) {
-	    		overwrap.suppressUpdate = false;
-	    		continue;
-	    	}
-	    	
-	        QuickTiGame2dMapTile tile = new QuickTiGame2dMapTile();
-	        tile.gid = data.get(i).intValue();
-	        tile.alpha = 1;
-	        tile.index = i;
-	        
-	        setTile(i, tile);
-	    }
+	public void setTiles(final List<Integer> data) {
+		
+		reloadQuadBuffer();
+		
+		beforeCommandQueue.offer(new RunnableGL() {
+			@Override
+			public void run(GL10 gl) {
+			    for (int i = 0; i < data.size(); i++) {
+			    	
+			    	QuickTiGame2dMapTile overwrap = updatedTiles.get(Integer.valueOf(i));
+			    	if (overwrap != null && overwrap.suppressUpdate) {
+			    		overwrap.suppressUpdate = false;
+			    		continue;
+			    	}
+			    	
+			        QuickTiGame2dMapTile tile = new QuickTiGame2dMapTile();
+			        tile.gid = data.get(i).intValue();
+			        tile.alpha = 1;
+			        tile.index = i;
+			        
+			        setTile(i, tile);
+			    }
+			}
+		});
 	}
 
 	public boolean removeTile(int index) {
@@ -958,7 +1095,6 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    }
 	    
 	    if (tilesets.size() == 0) {
-	        this.firstgid   = (int)Float.parseFloat(prop.get("firstgid"));
 	        this.tileWidth  = Float.parseFloat(prop.get("tilewidth"));
 	        this.tileHeight = Float.parseFloat(prop.get("tileheight"));
 	        this.tileOffsetX = Float.parseFloat(prop.get("offsetX"));
@@ -1075,5 +1211,30 @@ public class QuickTiGame2dMapSprite extends QuickTiGame2dSprite {
 	    }
 	    
 	    return true;
+	}
+	
+	public void updateMapSize(int x, int y) {
+		this.tileCountX = x;
+		this.tileCountY = y;
+		
+		useFixedTileCount = true;
+		
+		this.updateTileCount();
+	}
+
+	public boolean isTopLayer() {
+		return isTopLayer;
+	}
+
+	public void setTopLayer(boolean isTopLayer) {
+		this.isTopLayer = isTopLayer;
+	}
+
+	public boolean isSubLayer() {
+		return isSubLayer;
+	}
+
+	public void setSubLayer(boolean isSubLayer) {
+		this.isSubLayer = isSubLayer;
 	}
 }

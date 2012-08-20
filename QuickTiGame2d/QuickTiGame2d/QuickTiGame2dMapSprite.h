@@ -55,9 +55,15 @@
     
     NSMutableArray* tilesetgids;
     NSMutableDictionary* tilesets;
+    NSMutableDictionary* gidproperties;
     
     float tileOffsetX;
     float tileOffsetY;
+    
+    BOOL useFixedTileCount;
+    
+    BOOL isTopLayer;
+    BOOL isSubLayer;
 }
 @property (readwrite) float tileWidth;
 @property (readwrite) float tileHeight;
@@ -70,10 +76,13 @@
 @property (readwrite) float tileTiltFactorY;
 @property (readwrite) float tileOffsetX;
 @property (readwrite) float tileOffsetY;
+@property (readonly)  NSMutableDictionary* gidproperties;
+@property (readwrite) BOOL isTopLayer;
+@property (readwrite) BOOL isSubLayer;
 
 -(void)onLoad;
 -(void)bindVertex;
--(void)drawFrame;
+-(void)drawFrame:(QuickTiGame2dEngine*)engine;
 -(void)onDispose;
 
 -(BOOL)updateTileCount;
@@ -111,4 +120,6 @@
 
 - (BOOL)canUpdate:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile;
 
+- (void)updateGIDProperties:(NSDictionary*)info firstgid:(NSInteger)firstgid;
+- (void)updateMapSize:(NSInteger)_x ycount:(NSInteger)_y;
 @end

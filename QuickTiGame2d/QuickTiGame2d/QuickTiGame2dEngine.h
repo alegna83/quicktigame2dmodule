@@ -113,6 +113,8 @@ typedef struct CameraInfo {
 @property (readwrite) BOOL usePerspective;
 @property (readwrite) float alpha;
 
+- (void)forceUpdateViewport;
+- (void)updateOrthoViewport;
 - (void)drawFrame;
 - (void)onLoad:(GLint)framebufferWidth height:(GLint)framebufferHeight;
 - (void)onGainedFocus;
@@ -120,10 +122,13 @@ typedef struct CameraInfo {
 - (void)onDispose;
 
 +(NSTimeInterval)uptime;
-+(void)loadTexture:(NSString*)name;
-+(void)loadTexture:(NSString*)name texture:(QuickTiGame2dTexture*)texture;
-+(void)commitLoadTexture:(NSString*)name;
-+(void)commitUnloadTexture:(NSString*)name;
++(void)loadTexture:(NSString*)name tag:(NSString*)tag;
++(void)loadTexture:(NSString*)name texture:(QuickTiGame2dTexture*)texture tag:(NSString*)tag;
++(void)loadTexture:(NSString*)name data:(NSData*)data tag:(NSString*)tag;
++(void)commitLoadTexture:(NSString*)name tag:(NSString*)tag;
++(void)commitUnloadTexture:(NSString*)name tag:(NSString*)tag;
++(void)commitLoadTexture:(NSString*)name texture:(QuickTiGame2dTexture*)texture tag:(NSString*)tag;
++(void)commitLoadTexture:(NSString*)name data:(NSData*)data tag:(NSString*)tag;
 
 - (QuickTiGame2dScene*)pushScene:(QuickTiGame2dScene*)scene;
 - (QuickTiGame2dScene*)popScene;

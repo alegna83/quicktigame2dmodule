@@ -27,6 +27,7 @@
 // 
 #import "QuickTiGame2dSprite.h"
 #import "QuickTiGame2dEngine.h"
+#import "ParticleDataReader.h"
 #import "math.h"
 
 @interface QuickTiGame2dSprite (PrivateMethods)
@@ -60,6 +61,7 @@
 @synthesize relativeToTransformParent, relativeToTransformParentX, relativeToTransformParentY;
 @synthesize followParentTransformPosition, followParentTransformRotationCenter, followParentTransformScale,
             followParentTransformSize, followParentTransformColor, followParentTransformFrameIndex;
+@synthesize textureData;
 
 - (id)init {
     self = [super init];
@@ -133,6 +135,11 @@
         followParentTransformRotationCenter = TRUE;
         
         tag = @"";
+        
+        beforeCommandQueue = [[ArrayStackQueue alloc] init];
+        afterCommandQueue  = [[ArrayStackQueue alloc] init];
+        
+        textureData = nil;
     }
     return self;
 }
@@ -176,14 +183,30 @@
     return [[QuickTiGame2dEngine sharedTextureCache] objectForKey:image];
 }
 
+-(BOOL)loadTexture:(NSString*)name base64string:(NSString*)base64string {
+    return [self loadTexture:name data:[ParticleDataReader dataWithBase64EncodedString:base64string]];
+}
+
+-(BOOL)loadTexture:(NSString*)name data:(NSData*)data {
+    self.image = name;
+    self.textureData = data;
+    
+    return TRUE;
+}
+
 -(void)onLoad {
     if (loaded) return;
+
+    if (self.textureData != nil) {
+        [QuickTiGame2dEngine loadTexture:self.image data:self.textureData tag:self.tag];
+        self.textureData = nil;
+    }
     
     QuickTiGame2dTexture* aTexture = [[QuickTiGame2dEngine sharedTextureCache] objectForKey:image];
     
     // if texture is not yet cached, try to load texture here
     if (aTexture == nil && image != nil) {
-        [QuickTiGame2dEngine loadTexture:image];
+        [QuickTiGame2dEngine loadTexture:image tag:self.tag];
         aTexture =[[QuickTiGame2dEngine sharedTextureCache] objectForKey:image];
     }
     
@@ -274,9 +297,15 @@
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
--(void)drawFrame {
+-(void)drawFrame:(QuickTiGame2dEngine*)engine {
     if (!loaded) return;
 	
+    @synchronized(beforeCommandQueue) {
+        while ([beforeCommandQueue count] > 0) {
+            ((CommandBlock)[beforeCommandQueue poll])();
+        }
+    }
+    
 	if (frameIndexChanged) {
 		frameIndex = nextFrameIndex;
 		frameIndexChanged = FALSE;
@@ -358,6 +387,12 @@
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+    
+    @synchronized(afterCommandQueue) {
+        while ([beforeCommandQueue count] == 0 && [afterCommandQueue count] > 0) {
+            ((CommandBlock)[afterCommandQueue poll])();
+        }
+    }
 }
 
 -(void)onDispose {
@@ -394,6 +429,8 @@
     [transforms release];
     [transformsToBeRemoved release];
     [children release];
+    [beforeCommandQueue release];
+    [afterCommandQueue release];
     
     [super dealloc];
 }

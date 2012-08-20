@@ -61,12 +61,12 @@ public class GameView extends TiUIView implements OnLifecycleEvent {
 		getGameView().startCurrentScene();
 	}
 	
-	public void loadTexture(String texture) {
-		getGameView().commitLoadTexture(texture);
+	public void loadTexture(String texture, String tag) {
+		getGameView().commitLoadTexture(texture, tag);
 	}
 
-	public void unloadTexture(String texture) {
-		getGameView().commitUnloadTexture(texture);
+	public void unloadTexture(String texture, String tag) {
+		getGameView().commitUnloadTexture(texture, tag);
 	}
 	
 	public void start() {

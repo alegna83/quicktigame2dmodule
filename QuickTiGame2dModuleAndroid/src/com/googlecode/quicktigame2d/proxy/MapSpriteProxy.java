@@ -43,6 +43,8 @@ import com.googlecode.quicktigame2d.Quicktigame2dModule;
 @Kroll.proxy(creatableInModule=Quicktigame2dModule.class)
 public class MapSpriteProxy extends SpriteProxy {
 	
+	private HashMap<String, Object> mapSizeInfoCache = new HashMap<String, Object>();
+	
 	public MapSpriteProxy() {
 		sprite = new QuickTiGame2dMapSprite();
 	}
@@ -104,6 +106,14 @@ public class MapSpriteProxy extends SpriteProxy {
 				getMapSprite().getScaledTileHeight(tile) : getMapSprite().getScaledTileHeight()));
 		info.put("margin",   Double.valueOf(tile.margin));
 		info.put("border",   Double.valueOf(tile.border));
+		
+		Map<String, String> properties = getMapSprite().getGIDProperties(tile.gid);
+		
+		if (properties != null) {
+			info.put("properties", properties);
+		} else {
+			info.remove("properties");
+		}
 	}
 	
 	@SuppressWarnings("rawtypes")
@@ -159,7 +169,6 @@ public class MapSpriteProxy extends SpriteProxy {
 		return getMapSprite().canUpdate(index, tile);
 	}
 	
-	
 	@Kroll.method
 	public boolean updateTile(@SuppressWarnings("rawtypes") HashMap info) {
 		int index = -1;
@@ -187,10 +196,6 @@ public class MapSpriteProxy extends SpriteProxy {
 		if (info.containsKey("alpha")) {
 			alpha = (float)TiConvert.toDouble(info.get("alpha"));
 		}
-
-	    if (index < 0 || index >= getMapSprite().getTileCount()) {
-	        return false;
-	    }
 	    
 	    QuickTiGame2dMapTile target = getMapSprite().getTile(index);
 	    
@@ -239,6 +244,26 @@ public class MapSpriteProxy extends SpriteProxy {
 	@Kroll.method
 	public boolean flipTile(int index) {
 	    return getMapSprite().flipTile(index);
+	}
+	
+	@Kroll.getProperty @Kroll.method
+	public boolean getIsTopLayer() {
+		return getMapSprite().isTopLayer();
+	}
+	
+	@Kroll.setProperty @Kroll.method
+	public void setIsTopLayer(boolean enable) {
+		getMapSprite().setTopLayer(enable);
+	}
+	
+	@Kroll.getProperty @Kroll.method
+	public boolean getIsSubLayer() {
+		return getMapSprite().isSubLayer();
+	}
+	
+	@Kroll.setProperty @Kroll.method
+	public void setIsSubLayer(boolean enable) {
+		getMapSprite().setSubLayer(enable);
 	}
 	
 	@Kroll.getProperty @Kroll.method
@@ -325,12 +350,21 @@ public class MapSpriteProxy extends SpriteProxy {
 		getMapSprite().updateTileCount();
 	}
 	
+	@Kroll.getProperty @Kroll.method
+	public int getWidth() {
+		return sprite.getWidth();
+	}
+	
 	@Kroll.setProperty @Kroll.method
 	public void setHeight(int height) {
 		super.setHeight(height);
 		getMapSprite().updateTileCount();
 	}
-	
+
+	@Kroll.getProperty @Kroll.method
+	public int getHeight() {
+		return sprite.getHeight();
+	}
 	
 	@Kroll.getProperty @Kroll.method
 	public Integer[] getTiles() {
@@ -372,7 +406,28 @@ public class MapSpriteProxy extends SpriteProxy {
 	public Map<String, Map<String, String>> getTilesets() {
 		return getMapSprite().getTilesets();
 	}
+
+	@Kroll.setProperty @Kroll.method
+	public void setMapSize(@SuppressWarnings("rawtypes") HashMap info) {
+		if (info.containsKey("width") && info.containsKey("height")) {
+			int width  = TiConvert.toInt(info.get("width"));
+			int height = TiConvert.toInt(info.get("height"));
+			
+			getMapSprite().updateMapSize(width, height);
+		}
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Kroll.getProperty @Kroll.method
+	public HashMap getMapSize() {
+		mapSizeInfoCache.put("width",  getMapSprite().getTileCountX());
+		mapSizeInfoCache.put("height", getMapSprite().getTileCountY());
+		
+		return mapSizeInfoCache;
+	}
 	
+	
+	@SuppressWarnings("rawtypes")
 	@Kroll.setProperty @Kroll.method
 	public void setTilesets(Object[] args) {
 		for (int i = 0; i < args.length; i++) {
@@ -382,28 +437,48 @@ public class MapSpriteProxy extends SpriteProxy {
 			param.put("rowCount", "0");
 			param.put("columnCount", "0");
 			
-			@SuppressWarnings("rawtypes")
 			Map info = (Map) args[i];
 			
 			for (Object key : info.keySet()) {
 				if ("atlas".equals(key)) {
-					@SuppressWarnings("rawtypes")
-					Map atlasValues = (Map) info.get(key);
-					for (Object atlasKey : atlasValues.keySet()) {
-						if ("x".equals(atlasKey)) {
-							param.put("atlasX", String.valueOf(atlasValues.get(atlasKey)));
-						} else if ("y".equals(atlasKey)) {
-							param.put("atlasY", String.valueOf(atlasValues.get(atlasKey)));
-						} else if ("w".equals(atlasKey)) {
-							param.put("atlasWidth", String.valueOf(atlasValues.get(atlasKey)));
-						} else if ("h".equals(atlasKey)) {
-							param.put("atlasHeight", String.valueOf(atlasValues.get(atlasKey)));
+					Map value = (Map) info.get(key);
+					for (Object property : value.keySet()) {
+						if ("x".equals(property)) {
+							param.put("atlasX", String.valueOf(value.get(property)));
+						} else if ("y".equals(property)) {
+							param.put("atlasY", String.valueOf(value.get(property)));
+						} else if ("w".equals(property)) {
+							param.put("atlasWidth", String.valueOf(value.get(property)));
+						} else if ("h".equals(property)) {
+							param.put("atlasHeight", String.valueOf(value.get(property)));
 						}
 					}
-				} else {
-					if (info.get(key) != null) {
-						param.put(String.valueOf(key), String.valueOf(info.get(key)));
+				} else if ("properties".equals(key)) {
+					Map value = (Map) info.get(key);
+					for (Object property : value.keySet()) {
+						if ("rowCount".equals(property)) {
+							param.put("rowCount", String.valueOf(value.get(property)));
+						} else if ("columnCount".equals(property)) {
+							param.put("columnCount", String.valueOf(value.get(property)));
+						}
 					}
+				} else if ("tileproperties".equals(key) && info.get("firstgid") != null) {
+					Map value = (Map) info.get(key);
+					Map<String, Map<String, String>> properties = new HashMap<String, Map<String, String>>();
+					
+					for (Object property : value.keySet()) {
+						Map<String, String> holder = new HashMap<String, String>();
+						
+						Map subvalue = (Map)value.get(property);
+						for (Object k : subvalue.keySet()) {
+							holder.put(String.valueOf(k), String.valueOf(subvalue.get(k)));
+						}
+						
+						properties.put(String.valueOf(property), holder);
+					}
+					getMapSprite().updateGIDProperties(properties, Integer.parseInt(String.valueOf(info.get("firstgid"))));
+				} else {
+					param.put(String.valueOf(key), String.valueOf(info.get(key)));
 				}
 			}
 			
@@ -431,5 +506,37 @@ public class MapSpriteProxy extends SpriteProxy {
 			getMapSprite().animateTile(tileIndex, (int)Double.parseDouble(arg1.toString()), arg2, arg3, arg4);
 		}
 	}
+	
+	@Override
+	@Kroll.setProperty @Kroll.method
+	public void setCenter(@SuppressWarnings("rawtypes") HashMap info) {
+		if (info.containsKey("x")) {
+			float x = (float)TiConvert.toDouble(info.get("x"));
+			sprite.setX(x);
+		}
+		if (info.containsKey("y")) {
+			float y = (float)TiConvert.toDouble(info.get("y"));
+			sprite.setY(y - sprite.getScaledHeight() * 0.5f);
+		}
+	}
+	
+	@Override
+	@SuppressWarnings("rawtypes")
+	@Kroll.getProperty @Kroll.method
+	public HashMap getCenter() {
+		centerInfoCache.put("x" , sprite.getX());
+		centerInfoCache.put("y" , sprite.getY() + sprite.getScaledHeight() * 0.5f);
+		
+		return centerInfoCache;
+	}
+	
+	@Kroll.method
+	public void addChildLayer(MapSpriteProxy child) {
+		sprite.addChild(child.getSprite());
+	}
 
+	@Kroll.method
+	public void removeChildLayer(MapSpriteProxy child) {
+		sprite.removeChild(child.getSprite());
+	}
 }

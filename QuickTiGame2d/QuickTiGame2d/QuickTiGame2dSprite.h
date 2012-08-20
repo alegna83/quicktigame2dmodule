@@ -32,6 +32,9 @@
 #import "QuickTiGame2dTexture.h"
 #import "QuickTiGame2dAnimationFrame.h"
 #import "QuickTiGame2dTransform.h"
+#import "ArrayStackQueue.h"
+
+@class QuickTiGame2dEngine;
 
 @interface QuickTiGame2dImagePackInfo : NSObject {
     NSString* name;
@@ -105,6 +108,11 @@
     BOOL  followParentTransformColor;
     BOOL  followParentTransformFrameIndex;
     BOOL  followParentTransformRotationCenter;
+    
+    ArrayStackQueue* beforeCommandQueue;
+    ArrayStackQueue* afterCommandQueue;
+    
+    NSData* textureData;
 }
 @property (readonly) BOOL hasTexture;
 @property (readonly) NSInteger frameCount;
@@ -145,10 +153,11 @@
 @property (readwrite) BOOL  followParentTransformFrameIndex;
 @property (readonly) float scaledWidth;
 @property (readonly) float scaledHeight;
+@property (readwrite, retain) NSData* textureData;
 
 -(void)onLoad;
 -(void)bindVertex;
--(void)drawFrame;
+-(void)drawFrame:(QuickTiGame2dEngine*)engine;
 -(void)onDispose;
 
 -(BOOL)setFrameIndex:(NSInteger)index force:(BOOL)force;
@@ -209,6 +218,9 @@
 -(void)fireOnLoadSprite;
 
 -(BOOL)flipY;
+
+-(BOOL)loadTexture:(NSString*)name base64string:(NSString*)base64string;
+-(BOOL)loadTexture:(NSString*)name data:(NSData*)data;
 @end
 
 @interface QuickTiGame2dImagePackParser : NSObject <NSXMLParserDelegate> {

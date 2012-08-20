@@ -29,6 +29,8 @@
 #import "QuickTiGame2dSprite.h"
 #import "QuickTiGame2dTransform.h"
 
+@class QuickTiGame2dEngine;
+
 @interface QuickTiGame2dScene : NSObject {
     NSString* name;
     float color[4];
@@ -67,7 +69,7 @@
 
 -(void)onChangeSpriteZOrder:(NSNotification*)notification;
 -(void)onLoad;
--(void)drawFrame;
+-(void)drawFrame:(QuickTiGame2dEngine*)engine;
 -(void)onDeactivate;
 -(void)onDispose;
 

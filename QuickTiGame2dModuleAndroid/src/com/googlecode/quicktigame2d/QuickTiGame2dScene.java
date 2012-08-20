@@ -27,6 +27,7 @@
 // 
 package com.googlecode.quicktigame2d;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -52,7 +53,7 @@ public class QuickTiGame2dScene {
 	private int dstBlendFactor = GL11.GL_ONE_MINUS_SRC_ALPHA;
 	
 	private QuickTiGame2dTransform transform;
-	private QuickTiGame2dGameView  view;
+	protected WeakReference<QuickTiGame2dGameView> view = null;
 	
 	private boolean isHUD = false;
 
@@ -63,16 +64,15 @@ public class QuickTiGame2dScene {
 		color[3] = 1;
 	}
 	
-	public void onLoad(GL10  gl) {
+	public void onLoad(GL10  gl, QuickTiGame2dGameView gameview) {
 		if (loaded) return;
+		if (this.view == null) {
+			this.view = new WeakReference<QuickTiGame2dGameView>(gameview);
+		}
 		loaded = true;
 	}
 	
-	public void onDrawFrame(GL10 gl, QuickTiGame2dGameView view) {
-		if (!loaded) onLoad(gl);
-
-		this.view = view;
-		
+	public void onDrawFrame(GL10 gl) {
 		if (transform != null) {
 			synchronized (transform) {
 				onTransform();
@@ -95,7 +95,7 @@ public class QuickTiGame2dScene {
 		synchronized (sprites) {
 		for (QuickTiGame2dSprite sprite : sprites) {
 			sprite.setDebug(getDebug());
-			if (!sprite.isLoaded()) sprite.onLoad(gl, view);
+			if (!sprite.isLoaded()) sprite.onLoad(gl, view.get());
 	        if ((srcBlendFactor != sprite.getSrcBlendFactor()) ||
 	                (dstBlendFactor != sprite.getDstBlendFactor())) {
 	                srcBlendFactor = sprite.getSrcBlendFactor();
@@ -112,9 +112,17 @@ public class QuickTiGame2dScene {
 	}
 
 	public void onDispose() {
+		if (!loaded) return;
+		
+		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, "QuickTiGame2dScene.onDispose");
+		
 		waitingForAddSprites.clear();
 		waitingForRemoveSprites.clear();
 		sprites.clear();
+		
+		transform = null;
+		view = null;
+		
 		loaded = false;
 	}
 	
@@ -207,7 +215,7 @@ public class QuickTiGame2dScene {
 		// fire onStartTransform event
 		if (!transform.isStartEventFired()) {
 			transform.setStartEventFired(true);
-			view.onStartTransform(transform);
+			view.get().onStartTransform(transform);
 		}
 
 		if (transform.hasExpired()) {
@@ -263,7 +271,7 @@ public class QuickTiGame2dScene {
 
 	    transform.setCompleted(true);
 	    
-	    view.onCompleteTransform(transform);
+	    view.get().onCompleteTransform(transform);
 	}
 	
 	public boolean hasSprite() {
@@ -277,7 +285,6 @@ public class QuickTiGame2dScene {
 	public void setHUD(boolean isHUD) {
 		this.isHUD = isHUD;
 	}
-
 }
 
 class SpriteComparator implements Comparator<QuickTiGame2dSprite> {

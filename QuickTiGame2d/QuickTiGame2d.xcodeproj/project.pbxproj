@@ -234,8 +234,8 @@
 		F9A9F430149F285E00BCA6A8 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0430;
-				ORGANIZATIONNAME = "有限会社インフォシア";
+				LastUpgradeCheck = 0440;
+				ORGANIZATIONNAME = "QuickTiGame2d Project";
 			};
 			buildConfigurationList = F9A9F433149F285E00BCA6A8 /* Build configuration list for PBXProject "QuickTiGame2d" */;
 			compatibilityVersion = "Xcode 3.2";

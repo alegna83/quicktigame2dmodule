@@ -30,6 +30,7 @@ package com.googlecode.quicktigame2d;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 
@@ -114,13 +115,15 @@ public class QuickTiGame2dParticles extends QuickTiGame2dSprite {
 	public void onLoad(GL10 gl, QuickTiGame2dGameView view) {
 		if (loaded) return;
 		
-		this.view = view;
+		if (this.view == null) {
+			this.view = new WeakReference<QuickTiGame2dGameView>(view);
+		}
 
 	    // load particle setting from Particle Designer XML
 	    loadParticleXML();
 	    
 	    if (gzipBase64Data != null && gzipBase64Data.length() > 0) {
-	    	view.loadTexture(gl, image, gzipBase64Data);
+	    	view.loadTexture(gl, image, gzipBase64Data, tag);
 	    	gzipBase64Data = "";
 	    }
 	    
@@ -128,7 +131,7 @@ public class QuickTiGame2dParticles extends QuickTiGame2dSprite {
 		
 	    // if texture is not yet cached, try to load texture here
 		if (aTexture == null && image != null) {
-			view.loadTexture(gl, image);
+			view.loadTexture(gl, image, tag);
 			aTexture = view.getTextureFromCache(image);
 		}
 		

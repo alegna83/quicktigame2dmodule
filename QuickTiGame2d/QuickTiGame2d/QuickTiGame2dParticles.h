@@ -97,7 +97,7 @@
 @property (readwrite) GLfloat rotatePerSecondVariance;
 
 -(void)onLoad;
--(void)drawFrame;
+-(void)drawFrame:(QuickTiGame2dEngine*)engine;
 -(void)onDispose;
 
 @end

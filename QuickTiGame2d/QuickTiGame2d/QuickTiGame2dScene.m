@@ -81,7 +81,7 @@
             selector:@selector(onChangeSpriteZOrder:) name:@"onChangeSpriteZOrder" object:nil];
 }
 
--(void)drawFrame {
+-(void)drawFrame:(QuickTiGame2dEngine*)engine {
     if (!loaded) return;
     
     @synchronized (transform) {
@@ -90,7 +90,7 @@
 
     if (!isHUD) {
         glClearColor(color[0], color[1], color[2], color[3]);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     
     [self addWaitingSprites];
@@ -113,7 +113,7 @@
             dstBlendFactor = sprite.dstBlendFactor;
             glBlendFunc(srcBlendFactor, dstBlendFactor);
         }
-        [sprite drawFrame];
+        [sprite drawFrame:engine];
     }
 }
 

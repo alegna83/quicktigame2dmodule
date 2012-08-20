@@ -35,6 +35,8 @@ public interface QuickTiGame2dConstant {
 	String DEFAULT_ANIMATION_NAME = "default_animation";
 	String SNAPSHOT_TEXTURE_NAME  = "/quicktigame2d/@snapshot";
 
+	String TIBLOB_UNIQUENAME_PREFIX = "tiblob://";
+	
 	int ANIMATION_EASING_CUBIC_INOUT   = 0;
 	int ANIMATION_EASING_CUBIC_IN      = 1;
 	int ANIMATION_EASING_CUBIC_OUT     = 2;

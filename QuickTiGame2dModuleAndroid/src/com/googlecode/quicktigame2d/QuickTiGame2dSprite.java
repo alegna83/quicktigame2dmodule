@@ -30,10 +30,13 @@ package com.googlecode.quicktigame2d;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.microedition.khronos.opengles.GL10;
 import javax.microedition.khronos.opengles.GL11;
@@ -47,6 +50,7 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.googlecode.quicktigame2d.opengl.GLHelper;
+import com.googlecode.quicktigame2d.util.RunnableGL;
 
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -74,7 +78,7 @@ public class QuickTiGame2dSprite {
 	protected float[] param_rotate = new float[5];
 	protected float[] param_scale  = new float[6];
 	
-	protected QuickTiGame2dGameView view;
+	protected WeakReference<QuickTiGame2dGameView> view = null;
 
 	protected String image;
 	protected String tag = "";
@@ -117,6 +121,11 @@ public class QuickTiGame2dSprite {
     protected boolean followParentTransformColor      = true;
     protected boolean followParentTransformFrameIndex = false;
     
+	protected Queue<RunnableGL> beforeCommandQueue = new ConcurrentLinkedQueue<RunnableGL>();
+	protected Queue<RunnableGL> afterCommandQueue  = new ConcurrentLinkedQueue<RunnableGL>();
+	
+	protected byte[] textureData = null;
+
 	public QuickTiGame2dSprite() {
         // color param RGBA
         param_color[0] = 1.0f;
@@ -145,20 +154,34 @@ public class QuickTiGame2dSprite {
 	}
 
 	public QuickTiGame2dTexture getTexture() {
-		return view.getTextureFromCache(image);
+		return view.get().getTextureFromCache(image);
+	}
+	
+	public boolean loadTexture(String name, byte[] data) {
+		this.textureData  = data;
+		this.image = name;
+		
+		return true;
 	}
 
-	public void onLoad(GL10 gl, QuickTiGame2dGameView view) {
+	public void onLoad(GL10 gl, QuickTiGame2dGameView gameview) {
 		if (loaded) return;
 		
-		this.view = view;
+		if (this.view == null) {
+			this.view = new WeakReference<QuickTiGame2dGameView>(gameview);
+		}
+		
+		if (textureData != null) {
+			this.view.get().loadTexture(gl, image, textureData, tag);
+			textureData = null;
+		}
 
-		QuickTiGame2dTexture aTexture = view.getTextureFromCache(image);
+		QuickTiGame2dTexture aTexture = view.get().getTextureFromCache(image);
 		
 	    // if texture is not yet cached, try to load texture here
 		if (aTexture == null && image != null) {
-			view.loadTexture(gl, image);
-			aTexture = view.getTextureFromCache(image);
+			view.get().loadTexture(gl, image, tag);
+			aTexture = view.get().getTextureFromCache(image);
 		}
 		
 	    if (aTexture != null) {
@@ -189,7 +212,7 @@ public class QuickTiGame2dSprite {
 	    }
 	    
 	    if (debug && hasTexture && !aTexture.isSnapshot()) Log.d(Quicktigame2dModule.LOG_TAG, String.format("load Sprite: %s", image));
-	    if (hasTexture && !aTexture.isSnapshot()) view.onLoadSprite(this);
+	    if (hasTexture && !aTexture.isSnapshot()) view.get().onLoadSprite(this);
 		
 	    if (debug) GLHelper.checkError(gl);
 	    
@@ -204,6 +227,10 @@ public class QuickTiGame2dSprite {
     		return;
     	}
     	
+		while(!beforeCommandQueue.isEmpty()) {
+			beforeCommandQueue.poll().run(gl);
+		}
+		
 		if (frameIndexChanged) {
 			frameIndex = nextFrameIndex;
 			frameIndexChanged = false;
@@ -281,6 +308,10 @@ public class QuickTiGame2dSprite {
 	    // draw sprite
 	    gl.glDrawElements(GL11.GL_TRIANGLE_FAN, 4, GL11.GL_UNSIGNED_SHORT, 0);
 	    
+		while(beforeCommandQueue.isEmpty() && !afterCommandQueue.isEmpty()) {
+			afterCommandQueue.poll().run(gl);
+		}
+		
 	    gl.glBindBuffer(GL11.GL_ELEMENT_ARRAY_BUFFER, 0);
 	    gl.glBindBuffer(GL11.GL_ARRAY_BUFFER, 0);
 	    gl.glBindTexture(GL11.GL_TEXTURE_2D, 0);
@@ -289,8 +320,21 @@ public class QuickTiGame2dSprite {
 	public void onDispose() {
 		if (!loaded) return;
 	    if (debug && hasTexture && !getTexture().isSnapshot()) Log.d(Quicktigame2dModule.LOG_TAG, String.format("unload Sprite: %s", image));
-	    if (hasTexture && !getTexture().isSnapshot()) view.onUnloadSprite(this);
+	    if (hasTexture && !getTexture().isSnapshot() && view != null) view.get().onUnloadSprite(this);
 	    QuickTiGame2dGameView.deleteGLBuffer(frames_vbos);
+	    
+	    currentAnimation = null;
+	    animations.clear();
+	    imagepacks.clear();
+	    imagepacks_names.clear();
+
+	    view = null;
+	    transforms.clear();
+	    transformsToBeRemoved.clear();
+	    children.clear();
+	    beforeCommandQueue.clear();
+	    afterCommandQueue.clear();
+	    
 	    loaded = false;
 	}
 
@@ -924,7 +968,7 @@ public class QuickTiGame2dSprite {
 	        // fire onStartTransform event
 	        if (!transform.isStartEventFired()) {
 	        	transform.setStartEventFired(true);
-	        	view.onStartTransform(transform);
+	        	view.get().onStartTransform(transform);
 	        }
 	        
 	        if (transform.hasExpired()) {
@@ -1070,7 +1114,7 @@ public class QuickTiGame2dSprite {
 	    
 	    transform.setCompleted(true);
 	    
-	    view.onCompleteTransform(transform);
+	    view.get().onCompleteTransform(transform);
 	}
 
 	public void clearTransforms() {
@@ -1192,6 +1236,10 @@ public class QuickTiGame2dSprite {
 	public void setFollowParentTransformFrameIndex(
 			boolean followParentTransformFrameIndex) {
 		this.followParentTransformFrameIndex = followParentTransformFrameIndex;
+	}
+	
+	public byte[] getTextureData() {
+		return this.textureData;
 	}
 }
 class QuickTiGame2dImagePackInfo {

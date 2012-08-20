@@ -119,6 +119,7 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	private boolean debug  = false;
 	
 	private HashMap<String, QuickTiGame2dTexture> textureCache = new HashMap<String, QuickTiGame2dTexture>();
+	private HashMap<String, String> textureTagCache = new HashMap<String, String>();
 	
 	private Stack<QuickTiGame2dScene> sceneStack = new Stack<QuickTiGame2dScene>();
 	private List<GameViewEventListener> listeners = new ArrayList<GameViewEventListener>();
@@ -235,6 +236,34 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 				listener.onDispose();
 			}
 		}
+		
+		synchronized(sceneStack) {
+			for (QuickTiGame2dScene scene : sceneStack) {
+				scene.onDispose();
+			}
+		}
+		
+		beforeCommandQueue.clear();
+		afterCommandQueue.clear();
+		
+		snapshotSprite = null;
+		snapshotTexture = null;
+		
+		defaultPortraitCamera = null;
+		defaultLandscapeCamera = null;
+		customCamera = null;
+		transformCameraCache = null;
+		
+		textureCache.clear();
+		textureTagCache.clear();
+		sceneStack.clear();
+		listeners.clear();
+		
+		cameraTransforms.clear();
+		cameraTransformsToBeRemoved.clear();
+		
+		hudScene = null;
+		previousScene = null;
 	}
 	
 	public void onLoadSprite(QuickTiGame2dSprite sprite) {
@@ -273,20 +302,20 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 		releaseSnapshot();
 	}
 	
-	public void commitLoadTexture(final String texture) {
-    	afterCommandQueue.offer(new RunnableGL() {
+	public void commitLoadTexture(final String texture, final String tag) {
+    	beforeCommandQueue.offer(new RunnableGL() {
     		@Override
     		public void run(GL10 gl) {
-				loadTexture(gl, texture);
+				loadTexture(gl, texture, tag);
     		}
     	});
 	}
 
-	public void commitUnloadTexture(final String texture) {
+	public void commitUnloadTexture(final String texture, final String tag) {
     	afterCommandQueue.offer(new RunnableGL() {
     		@Override
     		public void run(GL10 gl) {
-				unloadTexture(gl, texture);
+				unloadTexture(gl, texture, tag);
     		}
     	});
 	}
@@ -296,7 +325,12 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 		return textureCache.get(name);
 	}
 	
-	public void loadTexture(GL10 gl, String name) {
+	public void loadTexture(GL10 gl, String name, String tag) {
+		if (debug && name == null) {
+        	Log.w(Quicktigame2dModule.LOG_TAG, 
+            		"QuickTiGame2dGameView:loadTexture name should not be null!");
+			return;
+		}
 		if (textureCache.containsKey(name)) return;
 		
 		QuickTiGame2dTexture texture = new QuickTiGame2dTexture(getContext());
@@ -304,11 +338,13 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 		texture.setName(name);
 		texture.onLoad(gl);
 		textureCache.put(name, texture);
+		
+		if (tag != null && tag.length() > 0) {
+			textureTagCache.put(tag,  name);
+		}
 	}
 	
-	public void loadTexture(GL10 gl, String name, String gzipBase64Data) {
-		if (textureCache.containsKey(name)) return;
-
+	public void loadTexture(GL10 gl, String name, String gzipBase64Data, String tag) {
 		byte[] data = new byte[0];
 		
 		try {
@@ -321,15 +357,43 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 			return;
 		}
 
+		loadTexture(gl, name, data, tag);
+	}
+
+	public void loadTexture(GL10 gl, String name, byte[] data, String tag) {
+		if (debug && name == null) {
+        	Log.w(Quicktigame2dModule.LOG_TAG, 
+            		"QuickTiGame2dGameView:loadTexture name should not be null!");
+			return;
+		}
+		if (textureCache.containsKey(name)) return;
+
 		QuickTiGame2dTexture texture = new QuickTiGame2dTexture(getContext());
 		texture.setDebug(getDebug());
 		texture.setName(name);
 		texture.onLoad(gl, data);
 		
 		textureCache.put(name, texture);
+		
+		if (tag != null && tag.length() > 0) {
+			textureTagCache.put(tag,  name);
+		}
 	}
-	
-	public void unloadTexture(GL10 gl, String name) {
+
+	public void unloadTexture(GL10 gl, String name, String tag) {
+		if (name == null && tag != null && tag.length() > 0) {
+			name = textureTagCache.get(tag);
+			if (name != null) {
+				textureTagCache.remove(tag);
+			}
+		}
+		
+		if (debug && name == null && tag == null) {
+        	Log.w(Quicktigame2dModule.LOG_TAG, 
+            		"QuickTiGame2dGameView:unloadTexture both name and tag equals null!");
+			return;
+		}
+		
 		if (!textureCache.containsKey(name)) return;
 		QuickTiGame2dTexture texture = textureCache.get(name);
 		texture.onDispose(gl);
@@ -462,7 +526,24 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
         gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
         
-        gl.glOrthof(0, width, height, 0, -100, 100);
+        float zFar = this.defaultPortraitCamera.zFar;
+        
+        gl.glOrthof(0, width, height, 0, -zFar, zFar);
+	}
+	
+	public void updateOrthoViewport(GL10 gl) {
+        gl.glViewport(0, 0, framebufferWidth, framebufferHeight); 
+        gl.glMatrixMode(GL10.GL_PROJECTION);
+        gl.glLoadIdentity();
+        
+        float zFar = this.defaultPortraitCamera.zFar;
+        
+        gl.glOrthof(0, width, height, 0, -zFar, zFar);
+	}
+	
+	public void forceUpdateViewport(GL10 gl) {
+		this.dirty = true;
+		this.updateViewport(gl);
 	}
 	
 	private void updateViewport(GL10 gl) {
@@ -634,7 +715,10 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 			scene.setDebug(debug);
 			scene.setSnapshot(takeSnapshot);
 			
-			scene.onDrawFrame(gl, this);
+			if (!scene.isLoaded()) {
+				scene.onLoad(gl, this);
+			}
+			scene.onDrawFrame(gl);
 			
 	        if (hudScene.hasSprite()) {
 	            updateHUDViewport(gl);
@@ -642,7 +726,10 @@ public class QuickTiGame2dGameView extends GLSurfaceView implements Renderer, On
 	            hudScene.setDebug(debug);
 	            hudScene.setSnapshot(takeSnapshot);
 	            
-	            hudScene.onDrawFrame(gl, this);
+				if (!hudScene.isLoaded()) {
+					hudScene.onLoad(gl, this);
+				}
+	            hudScene.onDrawFrame(gl);
 	            
 	            dirty = true;
 	        }

@@ -41,6 +41,8 @@
 - (void)updateTileProperty:(QuickTiGame2dMapTile*)tile;
 - (NSInteger)getChildTileRowCount:(QuickTiGame2dMapTile*)tile;
 - (BOOL)isHalfTile:(QuickTiGame2dMapTile*)tile;
+- (void)reloadQuadBuffer;
+- (BOOL)useLayeredMap;
 @end
 
 @interface QuickTiGame2dMapTile (PrivateMethods)
@@ -68,7 +70,7 @@
         height = 0;
         atlasX = 0;
         atlasY = 0;
-        firstgid = 0;
+        firstgid = 1;
         atlasWidth  = 0;
         atlasHeight = 0;
         offsetX = 0;
@@ -163,7 +165,7 @@
 @implementation QuickTiGame2dMapSprite
 @synthesize tileWidth, tileHeight, tileCount, tileCountX, tileCountY;
 @synthesize firstgid, tileTiltFactorX, tileTiltFactorY;
-@synthesize tileOffsetX, tileOffsetY;
+@synthesize tileOffsetX, tileOffsetY, gidproperties, isTopLayer, isSubLayer;
 
 -(id)init {
     self = [super init];
@@ -173,7 +175,8 @@
         
         tileChanged = FALSE;
         
-        firstgid = 0;
+        verticesID = 0;
+        firstgid = 1;
         
         orientation = MAP_ORIENTATION_ORTHOGONAL;
         
@@ -182,6 +185,13 @@
         
         tilesets = [[NSMutableDictionary alloc] init];
         tilesetgids = [[NSMutableArray alloc] init];
+        
+        gidproperties = [[NSMutableDictionary alloc] init];
+        
+        useFixedTileCount = FALSE;
+        
+        isTopLayer = FALSE;
+        isSubLayer = FALSE;
     }
     return self;
 }
@@ -191,6 +201,7 @@
     [updatedTiles release];
     [tilesets release];
     [tilesetgids release];
+    [gidproperties release];
     
 	if (quads)   free(quads);
 	if (indices) free(indices);
@@ -201,19 +212,32 @@
 }
 
 -(BOOL)updateTileCount {
-    if (width == 0 || height == 0 || tileWidth == 0 || tileHeight == 0) return FALSE;
+    if (tileWidth <= 0 || tileHeight <= 0) return FALSE;
     
-    if (orientation != MAP_ORIENTATION_HEXAGONAL) {
-        tileCountX = ceilf(width / tileWidth);
-        tileCountY = ceilf(height / tileHeight);
+    if (useFixedTileCount) {
         tileCount  = tileCountX * tileCountY;
-    } else {
-        tileCountX = ceilf(width / tileWidth);
-        tileCountY = ceilf(height / (tileHeight * tileTiltFactorY));
         
-        tileCount = (tileCountX * tileCountY) - (tileCountY / 2);
+        if (orientation == MAP_ORIENTATION_ISOMETRIC) {
+            self.width  = (int)(tileWidth  * tileCountX * tileTiltFactorX * 2);
+            self.height = (int)(self.width * 0.5f);
+        } else {
+            self.width  = (int)(tileWidth  * tileCountX * tileTiltFactorX);
+            self.height = (int)(tileHeight * tileCountY * tileTiltFactorY);
+        }
+        
+    } else {
+        if (orientation != MAP_ORIENTATION_HEXAGONAL) {
+            tileCountX = ceilf(width  / (tileWidth  * tileTiltFactorX));
+            tileCountY = ceilf(height / (tileHeight * tileTiltFactorY));
+        
+            tileCount  = tileCountX * tileCountY;
+        } else {
+            tileCountX = ceilf(width  / (tileWidth  * tileTiltFactorX));
+            tileCountY = ceilf(height / (tileHeight * tileTiltFactorY));
+        
+            tileCount = (tileCountX * tileCountY) - (tileCountY / 2);
+        }
     }
-    
     return TRUE;
 }
 
@@ -230,6 +254,24 @@
     }
 }
 
+-(void)reloadQuadBuffer {
+    if (!loaded) return;
+    
+    @synchronized(beforeCommandQueue) {
+        CommandBlock command = [^{
+            if (quads)   free(quads);
+            if (indices) free(indices);
+            
+            if ([self updateTileCount]) {
+                [self createQuadBuffer];
+            }
+        } copy];
+        
+        [beforeCommandQueue push:command];
+        [command release];
+    }
+}
+
 -(void)onDispose {
     [super onDispose];
 }
@@ -238,19 +280,37 @@
     // overwrite parent function..to do nothing
 }
 
--(void)drawFrame {
-    @synchronized (transforms) {
-        [self onTransform];
+/*
+ * Returns TRUE if this map uses layered map
+ * that uses depth buffer to order & render tiles but disables perspective view
+ */
+- (BOOL)useLayeredMap {
+    return isTopLayer || isSubLayer;
+}
+
+-(void)drawFrame:(QuickTiGame2dEngine*)engine {
+    
+    @synchronized(beforeCommandQueue) {
+        while ([beforeCommandQueue count] > 0) {
+            ((CommandBlock)[beforeCommandQueue poll])();
+        }
     }
     
-    @synchronized (updatedTiles) {
-        tileChanged = [updatedTiles count] > 0;
-        if (tileChanged) {
-            for (NSNumber* num in updatedTiles) {
-                [self updateQuad:[num intValue] tile:[updatedTiles objectForKey:num]];
-            }
-            [updatedTiles removeAllObjects];
+    //
+    // synchronize child layers position & scale
+    //
+    @synchronized (children) {
+        for (QuickTiGame2dSprite* child in children) {
+            child.x = self.x;
+            child.y = self.y;
+            child.scaleX = self.scaleX;
+            child.scaleY = self.scaleY;
+            child.scaleCenter = self.scaleCenter;
         }
+    }
+    
+    @synchronized (transforms) {
+        [self onTransform];
     }
     
     @synchronized (animations) {
@@ -263,13 +323,42 @@
                 }
                 int index = animation.nameAsInt;
                 if (index >= 0) {
-                    QuickTiGame2dMapTile* updateTileCache = [self getTile:index];
+                    QuickTiGame2dMapTile* cctile = [self getTile:index];
+                    QuickTiGame2dMapTile* updateTileCache = [[QuickTiGame2dMapTile alloc] init];
+                    [updateTileCache indexcc:cctile];
+                    
                     updateTileCache.gid = [animation getNextIndex:tileCount withIndex:updateTileCache.gid];
                     
                     [self setTile:index tile:updateTileCache];
+                    
+                    [updateTileCache release];
                 }
                 animation.lastOnAnimationInterval = uptime;
             }
+        }
+    }
+    
+    @synchronized (updatedTiles) {
+        tileChanged = [updatedTiles count] > 0;
+        if (tileChanged) {
+            for (NSNumber* num in updatedTiles) {
+                [self updateQuad:[num intValue] tile:[updatedTiles objectForKey:num]];
+            }
+            [updatedTiles removeAllObjects];
+        }
+    }
+    
+    if ([self useLayeredMap]) {
+        [engine updateOrthoViewport];
+        
+        glDepthFunc(GL_LEQUAL);
+        glEnable(GL_DEPTH_TEST);
+        
+        // Cut off alpha of sub layer to blend with top layer
+        // sublayer should not use half-translucent alpha
+        if (isSubLayer) {
+            glEnable(GL_ALPHA_TEST);
+            glAlphaFunc(GL_GREATER, 0.5);
         }
     }
     
@@ -306,14 +395,14 @@
 
     // Update the buffer when the tile data has been changed
     if (tileChanged) {
-        glBufferSubData(GL_ARRAY_BUFFER, 0, 128 * tileCount, quads);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 144 * tileCount, quads);
         tileChanged = FALSE;
     }
     
 	// Configure the vertex pointer which will use the currently bound VBO for its data
-    glVertexPointer(2, GL_FLOAT, 32, 0);
-    glColorPointer(4, GL_FLOAT,  32,   (GLvoid*)(4 * 4));
-    glTexCoordPointer(2, GL_FLOAT, 32, (GLvoid*)(4 * 2));
+    glVertexPointer(3, GL_FLOAT, 36, 0);
+    glColorPointer(4, GL_FLOAT,  36,   (GLvoid*)(4 * 5));
+    glTexCoordPointer(2, GL_FLOAT, 36, (GLvoid*)(4 * 3));
     
 	if (hasTexture) {
         glEnable(GL_TEXTURE_2D);
@@ -327,11 +416,30 @@
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     
+    if ([self useLayeredMap]) {
+        glDisable(GL_ALPHA_TEST);
+        glDisable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        
+        [engine forceUpdateViewport];
+    }
+    
     glDisableClientState(GL_COLOR_ARRAY);
+    
+    @synchronized(afterCommandQueue) {
+        while ([beforeCommandQueue count] == 0 && [afterCommandQueue count] > 0) {
+            ((CommandBlock)[afterCommandQueue poll])();
+        }
+    }
+    
+}
+
+-(NSInteger)getTileNumber:(QuickTiGame2dMapTile*)tile {
+    return tile.gid - tile.firstgid - (self.firstgid - 1);
 }
 
 -(float)tex_coord_startX:(QuickTiGame2dMapTile*)tile {
-    int tileNo = tile.gid - tile.firstgid;
+    int tileNo = [self getTileNumber:tile];
     if ([tilesets count] > 1) {
         float awidth = tile.atlasWidth > 0 ? tile.atlasWidth : width;
         float twidth = tile.isOverwrap ? tile.overwrapWidth : tile.width > 0 ? tile.width : tileWidth;
@@ -354,7 +462,7 @@
 }
 
 -(float)tex_coord_startY:(QuickTiGame2dMapTile*)tile {
-    int tileNo = tile.gid - tile.firstgid;
+    int tileNo = [self getTileNumber:tile];
     
     if ([tilesets count] > 1) {
         float awidth  = tile.atlasWidth  > 0 ? tile.atlasWidth  : width;
@@ -401,12 +509,13 @@
     clearGLErrors(@"before createQuadBuffer");
     
     //
-    // quad = ([vertex x, vertex y, texture x, texture y, red, green, blue, alpha] * 4) = 8 * 4 * (float=4bytes) = 128 bytes
+    // quad = ([vertex x, vertex y, vertex z, texture x, texture y, red, green, blue, alpha] * 4) = 9 * 4 * (float=4bytes) = 144 bytes
     //
-    quads   = calloc(sizeof(float) * 32, tileCount);
+    quads   = calloc(sizeof(float) * 9 * 4, tileCount);
     indices = calloc(sizeof(GLushort),   tileCount * 6);
     
     [tiles removeAllObjects];
+    [updatedTiles removeAllObjects];
     
     for( int i = 0; i < tileCount; i++) {
 		indices[i * 6 + 0] = i * 4 + 0;
@@ -435,7 +544,7 @@
     NSInteger index = 0;
     for(int ty = 0; ty < tileCountY; ty++) {
         for (int tx = 0; tx < tileCountX; tx++) {
-            int vi = index * 32;
+            int vi = index * 36;
             
             if (orientation == MAP_ORIENTATION_ISOMETRIC) {
                 float iso_startX = (tx * tileTiltFactorX  * tileWidth)  - (ty * tileTiltFactorX  * tileWidth);
@@ -443,18 +552,22 @@
                 
                 quads[vi + 0] = iso_startX;  // vertex  x
                 quads[vi + 1] = iso_startY;  // vertex  y
+                quads[vi + 2] = 0;           // vertex  z
                 
                 // -----------------------------
-                quads[vi + 8] = iso_startX;              // vertex  x
-                quads[vi + 9] = iso_startY + tileHeight; // vertex  y
+                quads[vi + 9] = iso_startX;               // vertex  x
+                quads[vi + 10] = iso_startY + tileHeight; // vertex  y
+                quads[vi + 11] = 0;                       // vertex z
                 
                 // -----------------------------
-                quads[vi + 16] = iso_startX + tileWidth; // vertex  x
-                quads[vi + 17] = iso_startY + tileHeight; // vertex  y
+                quads[vi + 18] = iso_startX + tileWidth;  // vertex  x
+                quads[vi + 19] = iso_startY + tileHeight; // vertex  y
+                quads[vi + 20] = 0;                       // vertex z
                 
                 // -----------------------------
-                quads[vi + 24] = iso_startX + tileWidth; // vertex  x
-                quads[vi + 25] = iso_startY;             // vertex  y
+                quads[vi + 27] = iso_startX + tileWidth;  // vertex  x
+                quads[vi + 28] = iso_startY;              // vertex  y
+                quads[vi + 29] = 0;                       // vertex z
             } else if (orientation == MAP_ORIENTATION_HEXAGONAL) {
                 if (ty % 2 == 1 && tx >= tileCountX - 1) {
                     continue;
@@ -466,43 +579,53 @@
                 
                 quads[vi + 0] = hex_startX;  // vertex  x
                 quads[vi + 1] = hex_startY;  // vertex  y
+                quads[vi + 2] = 0;           // vertex  z
                 
                 // -----------------------------
-                quads[vi + 8] = hex_startX;              // vertex  x
-                quads[vi + 9] = hex_startY + tileHeight; // vertex  y
+                quads[vi + 9] = hex_startX;               // vertex x
+                quads[vi + 10] = hex_startY + tileHeight; // vertex y
+                quads[vi + 11] = 0;                       // vertex z
                 
                 // -----------------------------
-                quads[vi + 16] = hex_startX + tileWidth; // vertex  x
-                quads[vi + 17] = hex_startY + tileHeight; // vertex  y
+                quads[vi + 18] = hex_startX + tileWidth;  // vertex  x
+                quads[vi + 19] = hex_startY + tileHeight; // vertex  y
+                quads[vi + 20] = 0;                       // vertex z
                 
                 // -----------------------------
-                quads[vi + 24] = hex_startX + tileWidth; // vertex  x
-                quads[vi + 25] = hex_startY;             // vertex  y
+                quads[vi + 27] = hex_startX + tileWidth;  // vertex  x
+                quads[vi + 28] = hex_startY;              // vertex  y
+                quads[vi + 29] = 0;                       // vertex z
 
             } else {
                 quads[vi + 0] = tx * tileWidth;  // vertex  x
                 quads[vi + 1] = ty * tileHeight; // vertex  y
+                quads[vi + 2] = 0;               // vertex  z
                 
                 // -----------------------------
-                quads[vi + 8] = (tx * tileWidth);               // vertex  x
-                quads[vi + 9] = (ty * tileHeight) + tileHeight; // vertex  y
+                quads[vi + 9]  = (tx * tileWidth);                // vertex  x
+                quads[vi + 10] = (ty * tileHeight) + tileHeight;  // vertex  y
+                quads[vi + 11] = 0;                               // vertex  z
                 
                 // -----------------------------
-                quads[vi + 16] = (tx * tileWidth)  + tileWidth;  // vertex  x
-                quads[vi + 17] = (ty * tileHeight) + tileHeight; // vertex  y
+                quads[vi + 18] = (tx * tileWidth)  + tileWidth;  // vertex  x
+                quads[vi + 19] = (ty * tileHeight) + tileHeight; // vertex  y
+                quads[vi + 20] = 0;                              // vertex  z
                 
                 // -----------------------------
-                quads[vi + 24] = (tx * tileWidth) + tileWidth;  // vertex  x
-                quads[vi + 25] = (ty * tileHeight);             // vertex  y
+                quads[vi + 27] = (tx * tileWidth) + tileWidth;  // vertex  x
+                quads[vi + 28] = (ty * tileHeight);             // vertex  y
+                quads[vi + 29] = 0;                             // vertex  z
             }
             index++;
         }
 	}
     
-	// Generate the vertices VBO
-	glGenBuffers(1, &verticesID);
+    // Generate the vertices VBO
+    if (verticesID == 0) {
+        glGenBuffers(1, &verticesID);
+    }
     glBindBuffer(GL_ARRAY_BUFFER, verticesID);
-    glBufferData(GL_ARRAY_BUFFER, 128 * tileCount, quads, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 144 * tileCount, quads, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 	
     clearGLErrors(@"createQuadBuffer");
@@ -511,50 +634,50 @@
 - (void)updateQuad:(NSInteger)index tile:(QuickTiGame2dMapTile*)cctile{
     if (index >= [tiles count]) return;
     
-    int vi = index * 32;
+    int vi = index * 36;
     
     QuickTiGame2dMapTile* tile = [tiles objectAtIndex:index];
     [tile cc:cctile];
     
-    if (tile.gid - tile.firstgid < 0) tile.alpha = 0;
+    if ([self getTileNumber:tile] < 0) tile.alpha = 0;
     
     float parentAlpha = [self alpha];
     
-    quads[vi + 2] = tile.flip ? [self tileCoordEndX:tile] : [self tileCoordStartX:tile]; // texture x
-    quads[vi + 3] = [self tileCoordEndY:tile]; // texture y
+    quads[vi + 3] = tile.flip ? [self tileCoordEndX:tile] : [self tileCoordStartX:tile]; // texture x
+    quads[vi + 4] = [self tileCoordEndY:tile]; // texture y
     
-    quads[vi + 4] = tile.red * tile.alpha * parentAlpha;   // red
-    quads[vi + 5] = tile.green * tile.alpha * parentAlpha; // green
-    quads[vi + 6] = tile.blue * tile.alpha * parentAlpha;  // blue
-    quads[vi + 7] = tile.alpha * parentAlpha; // alpha
-    
-    // -----------------------------
-    quads[vi + 10] = tile.flip ? [self tileCoordEndX:tile] : [self tileCoordStartX:tile];
-    quads[vi + 11] = [self tileCoordStartY:tile];
-    
-    quads[vi + 12] = tile.red * tile.alpha * parentAlpha;   // red
-    quads[vi + 13] = tile.green * tile.alpha * parentAlpha; // green
-    quads[vi + 14] = tile.blue * tile.alpha * parentAlpha;  // blue
-    quads[vi + 15] = tile.alpha * parentAlpha; // alpha
+    quads[vi + 5] = tile.red * tile.alpha * parentAlpha;   // red
+    quads[vi + 6] = tile.green * tile.alpha * parentAlpha; // green
+    quads[vi + 7] = tile.blue * tile.alpha * parentAlpha;  // blue
+    quads[vi + 8] = tile.alpha * parentAlpha; // alpha
     
     // -----------------------------
-    quads[vi + 18] = tile.flip ? [self tileCoordStartX:tile] : [self tileCoordEndX:tile];
-    quads[vi + 19] = [self tileCoordStartY:tile];
+    quads[vi + 12] = tile.flip ? [self tileCoordEndX:tile] : [self tileCoordStartX:tile];
+    quads[vi + 13] = [self tileCoordStartY:tile];
     
-    quads[vi + 20] = tile.red * tile.alpha * parentAlpha;   // red
-    quads[vi + 21] = tile.green * tile.alpha * parentAlpha; // green
-    quads[vi + 22] = tile.blue * tile.alpha * parentAlpha;  // blue
-    quads[vi + 23] = tile.alpha * parentAlpha; // alpha
+    quads[vi + 14] = tile.red * tile.alpha * parentAlpha;   // red
+    quads[vi + 15] = tile.green * tile.alpha * parentAlpha; // green
+    quads[vi + 16] = tile.blue * tile.alpha * parentAlpha;  // blue
+    quads[vi + 17] = tile.alpha * parentAlpha; // alpha
+    
+    // -----------------------------
+    quads[vi + 21] = tile.flip ? [self tileCoordStartX:tile] : [self tileCoordEndX:tile];
+    quads[vi + 22] = [self tileCoordStartY:tile];
+    
+    quads[vi + 23] = tile.red * tile.alpha * parentAlpha;   // red
+    quads[vi + 24] = tile.green * tile.alpha * parentAlpha; // green
+    quads[vi + 25] = tile.blue * tile.alpha * parentAlpha;  // blue
+    quads[vi + 26] = tile.alpha * parentAlpha; // alpha
     
     // -----------------------------
     
-    quads[vi + 26] = tile.flip ? [self tileCoordStartX:tile] : [self tileCoordEndX:tile];
-    quads[vi + 27] = [self tileCoordEndY:tile];
+    quads[vi + 30] = tile.flip ? [self tileCoordStartX:tile] : [self tileCoordEndX:tile];
+    quads[vi + 31] = [self tileCoordEndY:tile];
     
-    quads[vi + 28] = tile.red * tile.alpha * parentAlpha;   // red
-    quads[vi + 29] = tile.green * tile.alpha * parentAlpha; // green
-    quads[vi + 30] = tile.blue * tile.alpha * parentAlpha;  // blue
-    quads[vi + 31] = tile.alpha * parentAlpha; // alpha
+    quads[vi + 32] = tile.red * tile.alpha * parentAlpha;   // red
+    quads[vi + 33] = tile.green * tile.alpha * parentAlpha; // green
+    quads[vi + 34] = tile.blue * tile.alpha * parentAlpha;  // blue
+    quads[vi + 35] = tile.alpha * parentAlpha; // alpha
     
     if (tile.width > 0 && tile.height > 0) {
         
@@ -564,21 +687,26 @@
             tile.positionFixed = TRUE;
         }
         
+        float tilez = ![self useLayeredMap] ? 0 : tile.alpha > 0 ? index : -1;
+        
         quads[vi + 0] = tile.initialX + tile.offsetX;  // vertex  x
         quads[vi + 1] = tile.initialY + tile.offsetY;  // vertex  y
+        quads[vi + 2] = tilez;                         // vertex  z
             
-        quads[vi + 8]  = tile.initialX + tile.offsetX; // vertex  x
-        quads[vi + 25] = tile.initialY + tile.offsetY; // vertex  y
+        quads[vi + 9]  = tile.initialX + tile.offsetX; // vertex  x
+        quads[vi + 10] = quads[vi + 1] + tile.height;  // vertex  y
+        quads[vi + 11] = tilez;                        // vertex  z
         // -----------------------------
         
-        quads[vi + 9]  = quads[vi + 1] + tile.height; // vertex  y
+        // -----------------------------
+        quads[vi + 18] = quads[vi + 0] + tile.width;  // vertex  x
+        quads[vi + 19] = quads[vi + 1] + tile.height; // vertex  y
+        quads[vi + 20] = tilez;                       // vertex  z
         
         // -----------------------------
-        quads[vi + 16] = quads[vi + 0] + tile.width;  // vertex  x
-        quads[vi + 17] = quads[vi + 1] + tile.height; // vertex  y
-        
-        // -----------------------------
-        quads[vi + 24] = quads[vi + 0] + tile.width;  // vertex  x
+        quads[vi + 27] = quads[vi + 0] + tile.width;   // vertex  x
+        quads[vi + 28] = tile.initialY + tile.offsetY; // vertex  y
+        quads[vi + 29] = tilez;                        // vertex  z
     }
 }
 
@@ -617,11 +745,16 @@
     return [self getChildTileRowCount:tile] > 1;
 }
 
+- (void)updateGIDProperties:(NSDictionary*)info firstgid:(NSInteger)_firstgid {
+    for (id key in info) {
+        int gid = _firstgid + [key intValue];
+        [gidproperties setObject:[info objectForKey:key] forKey:[NSNumber numberWithInt:gid]];
+    }
+}
+
 -(void)updateTileProperty:(QuickTiGame2dMapTile*)tile {
-    tile.firstgid = firstgid;
-    
-    // Update tile properties if we found multiple tilesets
-    if ([tilesets count] > 1) {
+    // Update tile properties
+    if ([tilesets count] > 0) {
         if (tile.gid <= 0) {
             tile.image = [[tilesetgids objectAtIndex:0] objectForKey:@"image"];
         } else if (tile.image == nil) {
@@ -686,8 +819,12 @@
             QuickTiGame2dMapTile* target = [self getTile:index + column + (row * tileCountX)];
             if (target == nil) continue;
             
-            if (target.isChild && target.parent != index) {
-                return FALSE;
+            if (target.isChild) {
+                if (target.parent == index) {
+                    continue;
+                } else {
+                    return FALSE;
+                }
             } else if (target.gid > 0) {
                 return FALSE;
             } else if ([self hasChild:target]) {
@@ -700,7 +837,6 @@
 }
 
 -(BOOL)setTile:(NSInteger)index tile:(QuickTiGame2dMapTile*)tile {
-    
     
     if ([self getTile:index].isChild) {
         NSLog(@"[DEBUG] Tile %d can not be replaced because it is part of multiple tiles.", index);
@@ -729,15 +865,16 @@
                 
                 if (target != nil) {
                     [neighbor cc:target];
-                } else {
-                    [self updateTileProperty:neighbor];
                 }
+                
+                [self updateTileProperty:neighbor];
                 
                 neighbor.index = index2;
                 neighbor.isChild = TRUE;
                 neighbor.suppressUpdate = TRUE;
                 neighbor.alpha = 0;
                 neighbor.parent = index;
+                neighbor.gid = tile.gid;
                 
                 if (![self isTileSpaceUsed:tile row:row column:column]) {
                     // Clear neighboring tile that is not used
@@ -819,23 +956,34 @@
 }
 
 -(void)setTiles:(NSArray*)data {
-    for (int i = 0; i < [data count]; i++) {
+    
+    [self reloadQuadBuffer];
+    
+    @synchronized(beforeCommandQueue) {
+        CommandBlock command = [^{
+            for (int i = 0; i < [data count]; i++) {
+                
+                QuickTiGame2dMapTile* overwrap = [updatedTiles objectForKey:[NSNumber numberWithInt:i]];
+                if (overwrap != nil && overwrap.suppressUpdate) {
+                    overwrap.suppressUpdate = FALSE;
+                    continue;
+                }
+                
+                QuickTiGame2dMapTile* tile = [[QuickTiGame2dMapTile alloc] init];
+                tile.gid = [[data objectAtIndex:i] intValue];
+                tile.alpha = 1;
+                tile.index = i;
+                
+                [self setTile:i tile:tile];
+                
+                [tile release];
+            }
+        } copy];
         
-        QuickTiGame2dMapTile* overwrap = [updatedTiles objectForKey:[NSNumber numberWithInt:i]];
-        if (overwrap != nil && overwrap.suppressUpdate) {
-            overwrap.suppressUpdate = FALSE;
-            continue;
-        }
-        
-        QuickTiGame2dMapTile* tile = [[QuickTiGame2dMapTile alloc] init];
-        tile.gid = [[data objectAtIndex:i] intValue];
-        tile.alpha = 1;
-        tile.index = i;
-        
-        [self setTile:i tile:tile];
-        
-        [tile release];
+        [beforeCommandQueue push:command];
+        [command release];
     }
+
 }
 
 -(void)updateImageSize {
@@ -885,7 +1033,7 @@
 }
 
 -(BOOL)flipTile:(NSInteger)index {
-    if (index >= [tiles count]) return FALSE;
+    if (index < 0 || index >= [tiles count]) return FALSE;
     
     QuickTiGame2dMapTile* tile = [tiles objectAtIndex:index];
     tile.flip = !tile.flip;
@@ -1052,7 +1200,6 @@
     }
     
     if ([tilesets count] == 0) {
-        self.firstgid   = [[prop objectForKey:@"firstgid"]   intValue];
         self.tileWidth  = [[prop objectForKey:@"tilewidth"]  floatValue];
         self.tileHeight = [[prop objectForKey:@"tileheight"] floatValue];
         self.tileOffsetX =[[prop objectForKey:@"offsetX"] floatValue];
@@ -1153,4 +1300,11 @@
     return tile.height * self.scaleY;
 }
 
+-(void)updateMapSize:(NSInteger)_x ycount:(NSInteger)_y {
+    tileCountX = _x;
+    tileCountY = _y;
+    
+    useFixedTileCount = TRUE;
+    [self updateTileCount];
+}
 @end

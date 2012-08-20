@@ -55,7 +55,9 @@
 - (void)onNotification:(NSNotification*)notification;
 
 - (void)loadTexture:(id)args;
+- (void)loadTextureWithTag:(id)args;
 - (void)unloadTexture:(id)args;
+- (void)unloadTextureByTag:(id)args;
 
 - (id)uptime:(id)args;
 - (void)start:(id)args;

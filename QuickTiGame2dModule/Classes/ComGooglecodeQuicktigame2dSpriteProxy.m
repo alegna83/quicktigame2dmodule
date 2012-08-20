@@ -99,6 +99,28 @@
     
 }
 
+-(void)setData:(id)value {
+    ENSURE_SINGLE_ARG(value, TiBlob);
+    TiBlob* blob = [value retain];
+    
+    NSString* name = [[@TIBLOB_UNIQUENAME_PREFIX stringByAppendingString:[TiUtils createUUID]] retain];
+    
+    [sprite loadTexture:name data:blob.data];
+    
+    [name release];
+    [blob release];
+}
+
+-(id)data {
+    NSData* data = sprite.textureData;
+    
+    if (data == nil) {
+        return (id)[NSNull null];
+    } else {
+        return [[[TiBlob alloc] initWithData:data mimetype:@"application/octet-stream"] autorelease];
+    }
+}
+
 -(void)setImage:(id)value {
     sprite.image = [[[TiUtils stringValue:value] copy] autorelease];
     [sprite updateImageSize];
@@ -468,6 +490,34 @@
 - (void)setFollowParentTransformFrameIndex:(id)value {
     ENSURE_SINGLE_ARG(value, NSNumber);
     sprite.followParentTransformFrameIndex = [value boolValue];
+}
+
+/*
+ * Load texture from Blob object with given name
+ * The name parameter should be unique among textures
+ */
+- (void)loadTextureByBlobWithName:(id)args {
+    NSString* name = [[TiUtils stringValue:[args objectAtIndex:0]] retain];
+    TiBlob*   blob = [[args objectAtIndex:1] retain];
+    
+    [sprite loadTexture:name data:blob.data];
+    
+    [name release];
+    [blob release];
+}
+
+/*
+ * Load texture from Blob object with unique name
+ */
+- (void)loadTextureByBlob:(id)args {
+    TiBlob* blob = [[args objectAtIndex:0] retain];
+    
+    NSString* name = [[@TIBLOB_UNIQUENAME_PREFIX stringByAppendingString:[TiUtils createUUID]] retain];
+    
+    [sprite loadTexture:name data:blob.data];
+    
+    [name release];
+    [blob release];
 }
 
 @end

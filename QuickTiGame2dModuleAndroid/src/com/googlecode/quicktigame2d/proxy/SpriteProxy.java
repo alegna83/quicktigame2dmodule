@@ -33,8 +33,11 @@ import java.util.HashMap;
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollProxy;
 import org.appcelerator.kroll.annotations.Kroll;
+import org.appcelerator.titanium.TiBlob;
 import org.appcelerator.titanium.util.TiConvert;
+import org.appcelerator.titanium.util.TiPlatformHelper;
 
+import com.googlecode.quicktigame2d.QuickTiGame2dConstant;
 import com.googlecode.quicktigame2d.QuickTiGame2dSprite;
 import com.googlecode.quicktigame2d.Quicktigame2dModule;
 
@@ -88,10 +91,26 @@ public class SpriteProxy extends KrollProxy {
     	if (options.containsKey("scaleY")) {
     		setScaleY(options.getDouble("scaleY").floatValue());
     	}
+    	if (options.containsKey("data")) {
+    		this.setData((TiBlob)options.get("data"));
+    	}
     }
 	
 	public void onNotification(KrollDict info) {
 		fireEvent(info.getString("eventName"), info);
+	}
+	
+	public void onDispose() {
+		
+		if (sprite != null) {
+			sprite.onDispose();
+		}
+		
+		sprite = null;
+		transforms.clear();
+		centerInfoCache.clear();
+		rotationCenterInfoCache.clear();
+		scaleCenterInfoCache.clear();
 	}
 
 	public void onTransformNotification(KrollDict info) {
@@ -135,6 +154,23 @@ public class SpriteProxy extends KrollProxy {
 
 	public QuickTiGame2dSprite getSprite() {
 		return sprite;
+	}
+	
+	/*
+	 * Load texture from Blob object with given name
+	 * The name parameter should be unique among textures
+	 */
+	@Kroll.method
+	public void loadTextureByBlobWithName(String name, TiBlob blob) {
+		sprite.loadTexture(name, blob.getBytes());
+	}
+	
+	/*
+	 * Load texture from Blob object with unique name
+	 */
+	@Kroll.method
+	public void loadTextureByBlob(TiBlob blob) {
+		sprite.loadTexture(QuickTiGame2dConstant.TIBLOB_UNIQUENAME_PREFIX + TiPlatformHelper.createUUID(), blob.getBytes());
 	}
 	
 	@Kroll.method
@@ -522,4 +558,20 @@ public class SpriteProxy extends KrollProxy {
 	public void setFollowParentTransformSize(boolean follow) {
 		sprite.setFollowParentTransformSize(follow);
 	}
+	
+	@Kroll.getProperty @Kroll.method
+	public TiBlob getData() {
+		byte[] data = sprite.getTextureData();
+		if (data == null) {
+			return null;
+		} else {
+			return TiBlob.blobFromData(data, "application/octet-stream");
+		}
+	}
+	
+	@Kroll.setProperty @Kroll.method
+	public void setData(TiBlob blob) {
+		sprite.loadTexture(QuickTiGame2dConstant.TIBLOB_UNIQUENAME_PREFIX + TiPlatformHelper.createUUID(), blob.getBytes());
+	}
+
 }

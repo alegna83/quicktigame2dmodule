@@ -61,6 +61,22 @@ public class SceneProxy extends KrollProxy {
 		fireEvent(eventCache.getString("eventName"), eventCache);
 	}
 	
+	public void onDispose() {
+		
+		if (scene != null) {
+			scene.onDispose();
+		}
+		
+		for (SpriteProxy sprite : sprites) {
+			sprite.onDispose();
+		}
+		
+		sprites.clear();
+		
+		scene = null;
+		transform = null;
+	}
+	
 	public void onNotification(KrollDict info) {
 		fireEvent(info.getString("eventName"), info);
 		

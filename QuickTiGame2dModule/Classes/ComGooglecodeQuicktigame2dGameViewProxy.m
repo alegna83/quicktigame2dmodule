@@ -103,15 +103,30 @@
 - (void)loadTexture:(id)args {
     ENSURE_SINGLE_ARG(args, NSString);
     NSString* name = [[TiUtils stringValue:args] retain];
-    [QuickTiGame2dEngine commitLoadTexture:name];
+    [QuickTiGame2dEngine commitLoadTexture:name tag:nil];
     [name release];
+}
+
+- (void)loadTextureWithTag:(id)args {
+    NSString* name = [[TiUtils stringValue:[args objectAtIndex:0]] retain];
+    NSString* tag  = [[TiUtils stringValue:[args objectAtIndex:1]] retain];
+    [QuickTiGame2dEngine commitLoadTexture:name tag:tag];
+    [name release];
+    [tag release];
 }
 
 - (void)unloadTexture:(id)args {
     ENSURE_SINGLE_ARG(args, NSString);
     NSString* name = [[TiUtils stringValue:args] retain];
-    [QuickTiGame2dEngine commitUnloadTexture:name];
+    [QuickTiGame2dEngine commitUnloadTexture:name tag:nil];
     [name release];
+}
+
+- (void)unloadTextureByTag:(id)args {
+    ENSURE_SINGLE_ARG(args, NSString);
+    NSString* tag = [[TiUtils stringValue:args] retain];
+    [QuickTiGame2dEngine commitUnloadTexture:nil tag:tag];
+    [tag release];
 }
 
 - (id)uptime:(id)args {

@@ -141,14 +141,14 @@
     return TRUE;
 }
 
--(void)drawFrame {
+-(void)drawFrame:(QuickTiGame2dEngine*)engine {
     if (shouldReload) {
         [labelTexture onDispose];
         [self loadTextData];
         [self bindVertex];
         shouldReload = FALSE;
     }
-    [super drawFrame];
+    [super drawFrame:engine];
 }
 
 -(void)onDispose {

@@ -28,6 +28,7 @@
 package com.googlecode.quicktigame2d;
 
 import java.io.ByteArrayOutputStream;
+import java.lang.ref.WeakReference;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -72,7 +73,7 @@ public class QuickTiGame2dTextSprite extends QuickTiGame2dSprite {
     			forePaint.setTypeface(Typeface.DEFAULT_BOLD);
     		}
     	} else {
-    		Typeface typeface = TiUIHelper.toTypeface(view.getContext(), fontFamily);
+    		Typeface typeface = TiUIHelper.toTypeface(view.get().getContext(), fontFamily);
     		
     		if (isBold && isItalic) {
     			forePaint.setTypeface(Typeface.create(typeface, Typeface.BOLD_ITALIC));
@@ -102,7 +103,7 @@ public class QuickTiGame2dTextSprite extends QuickTiGame2dSprite {
 		if (view == null) return;
 		
 		if (labelTexture == null) {
-			labelTexture = new QuickTiGame2dTexture(view.getContext());
+			labelTexture = new QuickTiGame2dTexture(view.get().getContext());
 			labelTexture.setWidth(1);
 			labelTexture.setHeight(1);
 			labelTexture.setTextureFilter(GL10.GL_LINEAR);
@@ -118,7 +119,7 @@ public class QuickTiGame2dTextSprite extends QuickTiGame2dSprite {
     			forePaint.setTypeface(Typeface.DEFAULT_BOLD);
     		}
     	} else {
-    		Typeface typeface = TiUIHelper.toTypeface(view.getContext(), fontFamily);
+    		Typeface typeface = TiUIHelper.toTypeface(view.get().getContext(), fontFamily);
     		
     		if (isBold && isItalic) {
     			forePaint.setTypeface(Typeface.create(typeface, Typeface.BOLD_ITALIC));
@@ -157,7 +158,7 @@ public class QuickTiGame2dTextSprite extends QuickTiGame2dSprite {
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, os);
         byte[] data = os.toByteArray();
         
-		labelTexture.setDebug(view.getDebug());
+		labelTexture.setDebug(view.get().getDebug());
         labelTexture.setName(text);
         labelTexture.setWidth(textWidth);
         labelTexture.setHeight(textHeight);
@@ -180,7 +181,10 @@ public class QuickTiGame2dTextSprite extends QuickTiGame2dSprite {
 	
     @Override
 	public void onLoad(GL10 gl, QuickTiGame2dGameView view) {
-		this.view = view;
+    	
+		if (this.view == null) {
+			this.view = new WeakReference<QuickTiGame2dGameView>(view);
+		}
 		
     	loadTextData(gl);
     	

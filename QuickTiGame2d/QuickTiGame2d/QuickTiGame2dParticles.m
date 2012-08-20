@@ -145,7 +145,7 @@
     
     // if texture is not yet cached, try to load texture here
     if (aTexture == nil && image != nil) {
-        [QuickTiGame2dEngine loadTexture:image];
+        [QuickTiGame2dEngine loadTexture:image tag:self.tag];
         aTexture =[[QuickTiGame2dEngine sharedTextureCache] objectForKey:image];
     }
     
@@ -168,7 +168,7 @@
     }
 }
 
--(void)drawFrame {
+-(void)drawFrame:(QuickTiGame2dEngine*)engine {
     
     [self updateWithDelta:([QuickTiGame2dEngine uptime] - uptime)];
     uptime = [QuickTiGame2dEngine uptime];
@@ -660,7 +660,7 @@
             NSData* texdata = [ParticleDataReader parseDataWithBase64EncodedString:[attributeDict objectForKey:@"data"]];
             [data setName:sprite.image];
             if ([data onLoad:texdata]) {
-                [QuickTiGame2dEngine loadTexture:sprite.image texture:data];
+                [QuickTiGame2dEngine loadTexture:sprite.image texture:data tag:sprite.tag];
                 [data freeData];
             }
             [data release];

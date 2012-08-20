@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Stack;
 
 import org.appcelerator.kroll.KrollDict;
+import org.appcelerator.kroll.KrollRuntime;
 import org.appcelerator.kroll.annotations.Kroll;
 import org.appcelerator.titanium.TiBaseActivity;
 import org.appcelerator.titanium.proxy.TiViewProxy;
@@ -121,14 +122,24 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 	
 	@Kroll.method
 	public void loadTexture(String texture) {
-		getView().loadTexture(texture);
+		getView().loadTexture(texture, null);
 	}
 
 	@Kroll.method
+	public void loadTextureWithTag(String texture, String tag) {
+		getView().loadTexture(texture, tag);
+	}
+	
+	@Kroll.method
 	public void unloadTexture(String texture) {
-		getView().unloadTexture(texture);
+		getView().unloadTexture(texture, null);
 	}
 
+	@Kroll.method
+	public void unloadTextureByTag(String tag) {
+		getView().unloadTexture(null, tag);
+	}
+	
 	@Kroll.method
 	public void start() {
 		getView().start();
@@ -241,6 +252,11 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 	@Kroll.method
 	public void registerForMultiTouch() {
 		getView().registerForMultiTouch();
+	}
+	
+	@Kroll.method
+	public void cleanupGarbage() {
+		KrollRuntime.suggestGC();
 	}
 	
 	@Kroll.setProperty @Kroll.method
@@ -527,12 +543,18 @@ public class GameViewProxy extends TiViewProxy implements GameViewEventListener 
 
 	@Override
 	public void onDispose() {
-		KrollDict notificationEventCache = new KrollDict();
 		if (getDebug()) Log.d(Quicktigame2dModule.LOG_TAG, "GameViewProxy.onDispose");
-		notificationEventCache.put("eventName", "ondispose");
-		notificationEventCache.put("uptime", uptime());
-		this.fireEvent("ondispose", notificationEventCache, false);
-		if (topScene() != null) topScene().onNotification(notificationEventCache);
+		
+		for (SceneProxy scene : sceneStack) {
+			scene.onDispose();
+		}
+		
+		sceneStack.clear();
+		screenInfoCache.clear();
+		cameraInfoCache.clear();
+
+		cameraTransform = null;
+		previousScene = null;
 	}
 
 	@Override

@@ -35,6 +35,7 @@
     NSMutableDictionary* scaleCenterInfoCache;
 }
 @property (nonatomic, readwrite, assign) id image;
+@property (nonatomic, readwrite, assign) id data;
 @property (nonatomic, readwrite, assign) id tag;
 @property (nonatomic, readwrite, assign) id width;
 @property (nonatomic, readwrite, assign) id height;
@@ -61,6 +62,9 @@
 
 - (void)onAdd;
 - (void)onRemove;
+
+-(void)loadTextureByBlobWithName:(id)args;
+-(void)loadTextureByBlob:(id)args;
 
 -(void)dispose:(id)args;
 -(void)show:(id)args;
