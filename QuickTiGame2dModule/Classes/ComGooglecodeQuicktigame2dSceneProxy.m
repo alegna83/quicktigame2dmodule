@@ -165,5 +165,29 @@
     [sprites release];
 }
 
+-(id)spriteAtXY:(id)args {
+    ENSURE_SINGLE_ARG(args, NSDictionary);
+    
+    NSInteger x = [TiUtils intValue:@"x" properties:args def:0];
+    NSInteger y = [TiUtils intValue:@"y" properties:args def:0];
+    
+    NSArray * sprites = [scene spritesAt:x y:y];
+    NSArray * result = [[NSMutableArray alloc] init];
+    ComGooglecodeQuicktigame2dSpriteProxy* found = nil;
+    @synchronized(spriteStack) {
+        for (int i=0; i<[sprites count]; i++) {
+            QuickTiGame2dSprite * sprite = [sprites objectAtIndex:i];
+            for (ComGooglecodeQuicktigame2dSpriteProxy* spriteProxy in spriteStack) {
+                if ([spriteProxy sprite] == sprite && sprite.alpha > 0) {
+                    found = spriteProxy;
+                    break;
+                }
+            }
+            //[sprite fireEvent:eventName];
+        }
+    }
+    [sprites release];
+    return found;
+}
 
 @end

@@ -280,7 +280,7 @@
 
     NSMutableArray* spritesAtXY;
     spritesAtXY = [[NSMutableArray alloc] init];
-    for (int i = [spritesToEnum count]-1; i >=0 ; i--) {
+    for (int i = 0; i < [spritesToEnum count]; i++) {
         QuickTiGame2dSprite* sprite = [spritesToEnum objectAtIndex:i];
         if (x >= sprite.x && x <= sprite.x + sprite.width &&
             y >= sprite.y && y <= sprite.y + sprite.height) {

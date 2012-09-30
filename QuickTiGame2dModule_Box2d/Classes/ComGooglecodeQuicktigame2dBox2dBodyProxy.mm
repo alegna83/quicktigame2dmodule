@@ -34,8 +34,16 @@
 {
 	RELEASE_TO_NIL(viewproxy);
     RELEASE_TO_NIL(surface);
+    NSLog(@"dealloc body");
 	[super dealloc];
 }
+
+-(void)dispose:(id)args {
+	RELEASE_TO_NIL(viewproxy);
+    RELEASE_TO_NIL(surface);
+}
+
+
 
 -(ComGooglecodeQuicktigame2dSpriteProxy*)viewproxy
 {

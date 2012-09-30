@@ -391,6 +391,7 @@
 - (void)transform:(id)args {
     ENSURE_SINGLE_ARG(args, ComGooglecodeQuicktigame2dTransformProxy);
     [sprite transform:[args transformer]];
+    RELEASE_TO_NIL(args);
 }
 
 - (void)clearTransforms:(id)args {

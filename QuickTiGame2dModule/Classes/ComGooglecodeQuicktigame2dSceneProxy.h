@@ -50,5 +50,5 @@
 - (void)transform:(id)args;
 
 -(void)fireSpriteEventAt:(id)args;
-
+-(id)spriteAtXY:(id)args;
 @end

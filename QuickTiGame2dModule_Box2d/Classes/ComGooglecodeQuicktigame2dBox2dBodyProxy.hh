@@ -30,6 +30,7 @@
                             surface:(ComGooglecodeQuicktigame2dGameViewProxy*)surface;
 -(ComGooglecodeQuicktigame2dSpriteProxy*)viewproxy;
 -(b2Body*)body;
+-(void)dispose:(id)args;
 
 
 @end

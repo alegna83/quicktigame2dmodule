@@ -42,6 +42,8 @@
 
 -(void)dealloc
 {
+    
+    NSLog(@"DEALLOC WORLD!!!!");
 	[lock lock];
 	[timer invalidate]; timer = nil;
 	if (world)
@@ -101,6 +103,7 @@
 	
 	// Construct a world object, which will hold and simulate the rigid bodies.
 	world = new b2World(gravity); //TODO: make configurable sleep
+    world->SetAllowSleeping(true);
 	world->SetContinuousPhysics(true);
 	
 	if (contactListener)
@@ -180,7 +183,7 @@
 	if (_destroyed==NO)
 	{
 		[self _createWorld];
-		[(ComGooglecodeQuicktigame2dSceneProxy*)[surface topScene:nil] add:viewproxy];
+		//[(ComGooglecodeQuicktigame2dSceneProxy*)[surface topScene:nil] add:viewproxy];
 	}
 }
 
@@ -236,7 +239,7 @@
         
 		// Tell the physics world to create the body
 		b2Body *body = world->CreateBody(&bodyDef);
-        
+        body->SetSleepingAllowed(YES);
 		// Define the dynamic body fixture.
 		b2FixtureDef fixtureDef;
 		
@@ -324,6 +327,7 @@
     ComGooglecodeQuicktigame2dSpriteProxy *viewproxy = [body viewproxy];
     [[surface topScene:nil] remove:[NSArray arrayWithObject:viewproxy]];
     [bodies removeObject:body];
+	RELEASE_TO_NIL(body);
     [lock unlock];
 }
 
@@ -598,7 +602,10 @@
     {
         world->DestroyJoint([jp joint]);
     }
+    //[joint release]
+    RELEASE_TO_NIL(jp);
     [lock unlock];
+    //[jp release];
 }
 
 -(void)tick:(NSTimer *)timer
@@ -613,8 +620,8 @@
 	if (world)
 	{
 		
-		int32 velocityIterations = 10;
-		int32 positionIterations = 12;
+		int32 velocityIterations = 6;
+		int32 positionIterations = 10;
 		
 		// Instruct the world to perform a single step of simulation. It is
 		// generally best to keep the time step and iterations fixed.
